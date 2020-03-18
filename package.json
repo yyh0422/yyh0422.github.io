@@ -1,47 +1,28 @@
 {
-  "name": "hexo-theme-cactus",
-  "version": "3.0.0",
-  "description": "A responsive, clean and simple theme for Hexo.",
-  "main": "index.js",
-  "scripts": {
-    "lint": "gulp lint --silent",
-    "test": "gulp validate --silent",
-    "clean": "stylus-supremacy format source/css/**/*.styl --options .stylintrc -r"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/probberechts/cactus-dark.git"
-  },
-  "keywords": [
-    "Hexo",
-    "Theme",
-    "Cactus"
-  ],
-  "author": "Pieter Robberechts",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/probberechts/cactus-dark/issues"
-  },
-  "homepage": "https://github.com/probberechts/cactus-dark#readme",
-  "devDependencies": {
-    "del": "*",
-    "gulp": "^4.0.0",
-    "gulp-decompress": "*",
-    "gulp-download": "*",
-    "gulp-jshint": "*",
-    "gulp-stylint": "*",
-    "js-yaml": "*",
-    "jshint": "^2.9.6",
-    "jshint-stylish": "*",
-    "stylint": "*",
-    "stylint-stylish": "*",
-    "stylus-supremacy": "^2.12.2"
-  },
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "*",
-    "clipboard": "^2.0.4",
-    "jquery": "^3.3.1",
-    "justifiedGallery": "^3.6.5",
-    "vazir-font": "*"
-  }
+    "name": "by-blog",
+    "title": "BY Blog",
+    "author": "BY <qiubaiyingios@163.com>",
+    "version": "1.7.0",
+    "homepage": "http://qiubaiying.github.io",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/qiubaiying/qiubaiying.github.io"
+    },
+    "bugs": "https://github.com/qiubaiying/qiubaiying.github.io/issues",
+    "devDependencies": {
+        "grunt": "~0.4.5",
+        "grunt-contrib-less": "~0.11.4",
+        "grunt-contrib-watch": "~0.6.1",
+        "grunt-banner": "~0.2.3",
+        "grunt-contrib-uglify": "~0.5.1"
+    },
+    "scripts": {
+        "preview": "cd _site; python -m SimpleHTTPServer 8020",
+        "py3view": "cd _site; python3 -m http.server 8020",
+        "watch"  : "grunt watch & npm run preview & jekyll serve -w",
+        "py3wa"  : "grunt watch & npm run py3view & jekyll serve -w",
+        "boil"   : "git push boilerplate boilerplate:master",
+        "push"   : "git push origin master --tag",
+        "cafe"   : "git co gitcafe-pages; git merge master; git push gitcafe gitcafe-pages:gitcafe-pages --tag; git co master;"
+    }
 }
