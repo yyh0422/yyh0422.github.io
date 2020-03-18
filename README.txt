@@ -1,12 +1,12 @@
-Stellar by HTML5 UP
+Editorial by HTML5 UP
 html5up.net | @ajlkn
 Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 
 
-Say hello to Stellar, a slick little one-pager with a super vibrant color palette (which
-I guess you can always tone down if it's a little too vibrant for you), a "sticky" in-page
-nav bar (powered by my Scrollex plugin), a separate generic page template (just in case
-you need one), and an assortment of pre-styled elements.
+Say hello to Editorial, a blog/magazine-ish template built around a toggleable "locking"
+sidebar (scroll down to see what I mean) and an accordion-style menu. Not the usual landing
+page/portfolio affair you'd expect to see at HTML5 UP, but I figured for my 41st (!!!)
+template I'd change it up a little. Enjoy :)
 
 Demo images* courtesy of Unsplash, a radtastic collection of CC0 (public domain) images
 you can use for pretty much whatever.
@@ -27,5 +27,4 @@ Credits:
 
 	Other:
 		jQuery (jquery.com)
-		Scrollex (github.com/ajlkn/jquery.scrollex)
 		Responsive Tools (github.com/ajlkn/responsive-tools)
