@@ -10,7 +10,7 @@ baseurl: ""      # for example, '/blog' if your blog hosted on 'host/blog'
 github_repo: "https://github.com/qiubaiying/qiubaiying.github.io.git" # you code repository
 
 # Sidebar settings
-sidebar: wrong                          # whether or not using Sidebar.
+sidebar: false                         # whether or not using Sidebar.
 sidebar-about-description: "Goals determine what you going to be!"
 sidebar-avatar: /img/about-BY-gentle.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
@@ -61,7 +61,7 @@ kramdown:
 
 # Gitalk
 gitalk:
-  enable:     #是否开启Gitalk评论
+  enable: false    #是否开启Gitalk评论
   clientID:                            #生成的clientID
   clientSecret:     #生成的clientSecret
   repo: yyh0422.github.io    #仓库名称
@@ -85,7 +85,7 @@ ga_domain: qiubaiying.top               # 默认的是 auto, 这里我是自定�
 
 
 # Featured Tags
-featured-tags: true                     # 是否使用首页标签
+featured-tags: false                     # 是否使用首页标签
 featured-condition-size: 1              # 相同标签数量大于这个数，才会出现在首页
 
 
