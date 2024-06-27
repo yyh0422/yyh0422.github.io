@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://yyh0422.github.io</id>
+    <title>纯洁的小色狼</title>
+    <updated>2024-06-27T14:24:13.052Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://yyh0422.github.io"/>
+    <link rel="self" href="https://yyh0422.github.io/atom.xml"/>
+    <subtitle>欢迎来到我的精神世界！</subtitle>
+    <logo>https://yyh0422.github.io/images/avatar.png</logo>
+    <icon>https://yyh0422.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2024, 纯洁的小色狼</rights>
+    <entry>
+        <title type="html"><![CDATA[我努力到30岁还没过上好日子]]></title>
+        <id>https://yyh0422.github.io/post/wo-nu-li-dao-30-sui-huan-mei-guo-shang-hao-ri-zi/</id>
+        <link href="https://yyh0422.github.io/post/wo-nu-li-dao-30-sui-huan-mei-guo-shang-hao-ri-zi/">
+        </link>
+        <updated>2024-06-27T14:22:27.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[测试一下]]></title>
+        <id>https://yyh0422.github.io/post/hello-gridea/</id>
+        <link href="https://yyh0422.github.io/post/hello-gridea/">
+        </link>
+        <updated>2018-12-11T16:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
+✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
+✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
+]]></content>
+    </entry>
+</feed>
