@@ -1,0 +1,37 @@
+baseURL: https://yyh0422.github.io/
+languageCode: zh-cn
+defaultContentLanguage: zh
+title: 我的博客
+theme: PaperMod
+pagination:
+  pagerSize: 10
+enableRobotsTXT: true
+params:
+  env: production
+  description: 我的个人博客
+  defaultTheme: auto
+  ShowReadingTime: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  homeInfoParams:
+    Title: 你好 👋
+    Content: 欢迎来到我的博客,在这里记录学习与生活。
+menu:
+  main:
+    - identifier: home
+      name: 首页
+      url: /
+      weight: 10
+    - identifier: posts
+      name: 文章
+      url: /posts/
+      weight: 20
+    - identifier: archives
+      name: 归档
+      url: /archives/
+      weight: 30
+    - identifier: about
+      name: 关于
+      url: /about/
+      weight: 40
