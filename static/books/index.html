@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>我的书架</title>
+<style>
+:root{
+  --bg:#f6f1e7; --card:#fffdf8; --ink:#2e2a23; --muted:#978b78;
+  --accent:#a3541f; --accent-soft:#f3e4d3; --line:#e7dcc6;
+  --green:#4a7c59; --red:#b0483a; --radius:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.6;}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px 90px;}
+header.top{position:sticky;top:0;z-index:10;background:rgba(246,241,231,.96);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+header.top .inner{max-width:720px;margin:0 auto;padding:14px 16px 10px;}
+h1{font-size:22px;margin:0;display:flex;align-items:center;gap:8px;}
+.stats{color:var(--muted);font-size:13px;margin-top:4px;}
+.searchrow{display:flex;gap:8px;margin-top:10px;}
+.searchrow input{flex:1;padding:10px 14px;border:1px solid var(--line);border-radius:999px;
+  font-size:15px;background:#fff;outline:none;}
+.searchrow input:focus{border-color:var(--accent);}
+.btn{border:none;border-radius:999px;padding:10px 18px;font-size:15px;cursor:pointer;
+  background:var(--accent);color:#fff;font-weight:600;white-space:nowrap;}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent);}
+.btn.small{padding:6px 12px;font-size:13px;}
+.btnrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.book-card{cursor:pointer;}
+.book-card:active{transform:scale(.99);}
+.book-title{font-size:18px;font-weight:700;margin:0 0 4px;}
+.book-meta{color:var(--muted);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.badge{font-size:12px;padding:2px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);}
+.badge.done{background:#e2ecdf;color:var(--green);}
+.badge.drop{background:#f0ddd8;color:var(--red);}
+.stars{color:#d99a2b;letter-spacing:2px;font-size:14px;}
+.excerpt{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:18px 0;}
+.excerpt .quote{font-size:16px;}
+.excerpt .ref{color:var(--muted);font-size:13px;margin-top:6px;}
+.excerpt .note{margin-top:10px;background:#faf6ec;border-radius:10px;padding:10px 12px;font-size:15px;}
+.excerpt .note::before{content:"✎ 我的笔记";display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+.excerpt .ops{margin-top:8px;display:flex;gap:8px;}
+.linkbtn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:4px 0;}
+.linkbtn.danger{color:var(--red);}
+.backbtn{background:none;border:none;color:var(--accent);font-size:15px;cursor:pointer;padding:8px 0;font-weight:600;}
+.empty{text-align:center;color:var(--muted);padding:60px 20px;font-size:15px;}
+/* modal */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;
+  display:flex;align-items:flex-end;justify-content:center;}
+@media(min-width:600px){.modal-mask{align-items:center;}}
+.modal{background:var(--card);width:100%;max-width:560px;max-height:88vh;overflow:auto;
+  border-radius:20px 20px 0 0;padding:20px 18px 28px;}
+@media(min-width:600px){.modal{border-radius:20px;}}
+.modal h2{margin:0 0 14px;font-size:18px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;font-size:15px;
+  border:1px solid var(--line);border-radius:10px;background:#fff;font-family:inherit;outline:none;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{min-height:90px;resize:vertical;}
+.field textarea.tall{min-height:140px;}
+.starpick{display:flex;gap:6px;font-size:28px;}
+.starpick span{cursor:pointer;color:#ddd;}
+.starpick span.on{color:#d99a2b;}
+.modal .btnrow{justify-content:flex-end;margin-top:18px;}
+.daterow{display:flex;gap:10px;}
+.daterow .field{flex:1;}
+footer.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;padding:0 20px;}
+.hiddenfile{display:none;}
+</style>
+</head>
+<body>
+<header class="top"><div class="inner">
+  <h1>📚 我的书架</h1>
+  <div class="stats" id="stats"></div>
+  <div class="searchrow">
+    <input id="q" type="search" placeholder="搜索书名 / 作者 / 摘抄 / 笔记…" autocomplete="off">
+  </div>
+  <div class="btnrow" id="topbtns">
+    <button class="btn small" id="addBookBtn">＋ 添加图书</button>
+    <button class="btn small ghost" id="exportBtn">备份导出</button>
+    <button class="btn small ghost" id="importBtn">导入恢复</button>
+    <input type="file" id="importFile" class="hiddenfile" accept=".json,application/json">
+  </div>
+</div></header>
+
+<div class="wrap">
+  <div id="shelfView"></div>
+  <div id="bookView" style="display:none"></div>
+  <footer class="hint">数据保存在本机浏览器里，换手机或清缓存会丢，请定期点「备份导出」把 JSON 存好。</footer>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+"use strict";
+const KEY = "bookshelf.v1";
+let db = load() || { books: [] };
+let currentBookId = null;
+
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } }
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const STATUS = { reading:"在读", done:"已读完", dropped:"弃读" };
+
+function counts(){
+  let e = 0; db.books.forEach(b => e += (b.excerpts||[]).length);
+  return { books: db.books.length, excerpts: e };
+}
+function renderStats(){
+  const c = counts();
+  document.getElementById("stats").textContent = `共 ${c.books} 本书 · ${c.excerpts} 条摘抄`;
+}
+function stars(n){ n = n||0; return "★".repeat(n) + "☆".repeat(5-n); }
+
+/* ---------- 书架视图 ---------- */
+function bookMatches(b, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  if((b.title+" "+(b.author||"")+" "+(STATUS[b.status]||"")).toLowerCase().includes(q)) return true;
+  return (b.excerpts||[]).some(x => ((x.text||"")+" "+(x.ref||"")+" "+(x.note||"")).toLowerCase().includes(q));
+}
+function renderShelf(){
+  currentBookId = null;
+  document.getElementById("bookView").style.display = "none";
+  const v = document.getElementById("shelfView");
+  v.style.display = "";
+  const q = document.getElementById("q").value.trim();
+  const books = db.books.filter(b => bookMatches(b, q));
+  if(!books.length){
+    v.innerHTML = `<div class="empty">${q ? "没有找到匹配的内容" : "书架还是空的，<br>点右上角「＋ 添加图书」开始记录第一本书吧"}</div>`;
+    return;
+  }
+  v.innerHTML = books.map(b => `
+    <div class="card book-card" data-id="${b.id}">
+      <p class="book-title">${esc(b.title)}</p>
+      <div class="book-meta">
+        ${b.author?`<span>${esc(b.author)}</span>`:""}
+        <span class="badge ${b.status==="done"?"done":b.status==="dropped"?"drop":""}">${STATUS[b.status]||"在读"}</span>
+        ${b.rating?`<span class="stars">${stars(b.rating)}</span>`:""}
+        <span>${(b.excerpts||[]).length} 条摘抄</span>
+      </div>
+    </div>`).join("");
+  v.querySelectorAll(".book-card").forEach(el =>
+    el.addEventListener("click", () => openBook(el.dataset.id)));
+}
+
+/* ---------- 图书详情视图 ---------- */
+function openBook(id){
+  currentBookId = id;
+  renderBook();
+}
+function renderBook(){
+  const b = db.books.find(x => x.id === currentBookId);
+  if(!b){ renderShelf(); return; }
+  document.getElementById("shelfView").style.display = "none";
+  const v = document.getElementById("bookView");
+  v.style.display = "";
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const list = (b.excerpts||[]).filter(x => !q ||
+    ((x.text||"")+" "+(x.ref||"")+" "+(x.note||"")).toLowerCase().includes(q));
+  v.innerHTML = `
+    <button class="backbtn" id="backBtn">‹ 返回书架</button>
+    <div class="card">
+      <p class="book-title">${esc(b.title)}</p>
+      <div class="book-meta">
+        ${b.author?`<span>作者：${esc(b.author)}</span>`:""}
+        <span class="badge ${b.status==="done"?"done":b.status==="dropped"?"drop":""}">${STATUS[b.status]||"在读"}</span>
+        ${b.rating?`<span class="stars">${stars(b.rating)}</span>`:""}
+      </div>
+      ${(b.startedAt||b.finishedAt)?`<div class="book-meta" style="margin-top:6px">
+        ${b.startedAt?`<span>开始：${esc(b.startedAt)}</span>`:""}
+        ${b.finishedAt?`<span>读完：${esc(b.finishedAt)}</span>`:""}</div>`:""}
+      <div class="btnrow">
+        <button class="btn small ghost" id="addExcerptBtn">＋ 加摘抄</button>
+        <button class="btn small ghost" id="editBookBtn">编辑图书</button>
+        <button class="linkbtn danger" id="delBookBtn">删除本书</button>
+      </div>
+    </div>
+    <div id="excerptList">
+      ${list.length ? list.map(x => `
+        <div class="excerpt">
+          <div class="quote">${esc(x.text).replace(/\n/g,"<br>")}</div>
+          ${x.ref?`<div class="ref">—— ${esc(x.ref)}</div>`:""}
+          ${x.note?`<div class="note">${esc(x.note).replace(/\n/g,"<br>")}</div>`:""}
+          <div class="ops">
+            <button class="linkbtn" data-edit-ex="${x.id}">编辑</button>
+            <button class="linkbtn danger" data-del-ex="${x.id}">删除</button>
+          </div>
+        </div>`).join("")
+      : `<div class="empty">${q?"没有匹配的摘抄":"还没有摘抄，读到好句子就记下来吧"}</div>`}
+    </div>`;
+  document.getElementById("backBtn").onclick = renderShelf;
+  document.getElementById("addExcerptBtn").onclick = () => excerptForm(b);
+  document.getElementById("editBookBtn").onclick = () => bookForm(b);
+  document.getElementById("delBookBtn").onclick = () => {
+    if(confirm(`确定删除《${b.title}》及全部摘抄吗？`)){
+      db.books = db.books.filter(x => x.id !== b.id);
+      save(); renderStats(); renderShelf();
+    }
+  };
+  v.querySelectorAll("[data-edit-ex]").forEach(el =>
+    el.addEventListener("click", ev => { ev.stopPropagation();
+      const x = b.excerpts.find(e => e.id === el.dataset.editEx); excerptForm(b, x); }));
+  v.querySelectorAll("[data-del-ex]").forEach(el =>
+    el.addEventListener("click", ev => { ev.stopPropagation();
+      if(confirm("确定删除这条摘抄吗？")){
+        b.excerpts = b.excerpts.filter(e => e.id !== el.dataset.delEx);
+        save(); renderStats(); renderBook();
+      }}));
+}
+
+/* ---------- 弹窗表单 ---------- */
+function closeModal(){ document.getElementById("modalRoot").innerHTML = ""; }
+function openModal(html){
+  const r = document.getElementById("modalRoot");
+  r.innerHTML = `<div class="modal-mask" id="mmask"><div class="modal">${html}</div></div>`;
+  document.getElementById("mmask").addEventListener("click", e => {
+    if(e.target.id === "mmask") closeModal();
+  });
+}
+function starPickerHTML(cur){
+  return `<div class="starpick" id="starpick">` +
+    [1,2,3,4,5].map(i => `<span data-s="${i}" class="${i<=(cur||0)?"on":""}">★</span>`).join("") +
+    `</div><input type="hidden" id="f_rating" value="${cur||0}">`;
+}
+function bookForm(b){
+  const isNew = !b; b = b || {};
+  openModal(`
+    <h2>${isNew?"添加图书":"编辑图书"}</h2>
+    <div class="field"><label>书名 *</label><input id="f_title" value="${esc(b.title||"")}"></div>
+    <div class="field"><label>作者</label><input id="f_author" value="${esc(b.author||"")}"></div>
+    <div class="field"><label>状态</label><select id="f_status">
+      ${Object.keys(STATUS).map(k=>`<option value="${k}" ${b.status===k?"selected":""}>${STATUS[k]}</option>`).join("")}
+    </select></div>
+    <div class="field"><label>评分</label>${starPickerHTML(b.rating)}</div>
+    <div class="daterow">
+      <div class="field"><label>开始日期</label><input type="date" id="f_started" value="${esc(b.startedAt||"")}"></div>
+      <div class="field"><label>读完日期</label><input type="date" id="f_finished" value="${esc(b.finishedAt||"")}"></div>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" id="mCancel">取消</button>
+      <button class="btn" id="mSave">保存</button>
+    </div>`);
+  document.getElementById("starpick").addEventListener("click", e => {
+    const s = e.target.dataset.s; if(!s) return;
+    document.getElementById("f_rating").value = s;
+    document.querySelectorAll("#starpick span").forEach(sp =>
+      sp.classList.toggle("on", +sp.dataset.s <= +s));
+  });
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mSave").onclick = () => {
+    const title = document.getElementById("f_title").value.trim();
+    if(!title){ alert("请填写书名"); return; }
+    const data = {
+      title,
+      author: document.getElementById("f_author").value.trim(),
+      status: document.getElementById("f_status").value,
+      rating: +document.getElementById("f_rating").value,
+      startedAt: document.getElementById("f_started").value,
+      finishedAt: document.getElementById("f_finished").value,
+    };
+    if(isNew){
+      db.books.unshift(Object.assign({ id: uid(), excerpts: [], createdAt: Date.now() }, data));
+    } else Object.assign(b, data);
+    save(); closeModal(); renderStats();
+    if(currentBookId) renderBook(); else renderShelf();
+  };
+}
+function excerptForm(b, x){
+  const isNew = !x; x = x || {};
+  openModal(`
+    <h2>${isNew?"添加摘抄":"编辑摘抄"}</h2>
+    <div class="field"><label>摘抄内容 *</label>
+      <textarea class="tall" id="f_text">${esc(x.text||"")}</textarea></div>
+    <div class="field"><label>出处（章节 / 页码）</label>
+      <input id="f_ref" value="${esc(x.ref||"")}" placeholder="如：第3章 / p.42"></div>
+    <div class="field"><label>我的笔记</label>
+      <textarea id="f_note" placeholder="针对这段摘抄的想法…">${esc(x.note||"")}</textarea></div>
+    <div class="btnrow">
+      <button class="btn ghost" id="mCancel">取消</button>
+      <button class="btn" id="mSave">保存</button>
+    </div>`);
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mSave").onclick = () => {
+    const text = document.getElementById("f_text").value.trim();
+    if(!text){ alert("请填写摘抄内容"); return; }
+    const data = {
+      text,
+      ref: document.getElementById("f_ref").value.trim(),
+      note: document.getElementById("f_note").value.trim(),
+    };
+    if(isNew){
+      b.excerpts = b.excerpts || [];
+      b.excerpts.push(Object.assign({ id: uid(), createdAt: Date.now() }, data));
+    } else Object.assign(x, data);
+    save(); closeModal(); renderStats(); renderBook();
+  };
+}
+
+/* ---------- 备份 / 恢复 ---------- */
+function doExport(){
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  const d = new Date();
+  const name = `书架备份-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.json`;
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+function doImport(file){
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const data = JSON.parse(rd.result);
+      if(!data || !Array.isArray(data.books)) throw 0;
+      const have = new Set(db.books.map(b => b.id));
+      let n = 0;
+      data.books.forEach(b => {
+        if(b && b.id && !have.has(b.id) && b.title){
+          b.excerpts = Array.isArray(b.excerpts) ? b.excerpts : [];
+          db.books.push(b); have.add(b.id); n++;
+        }
+      });
+      save(); renderStats();
+      if(currentBookId) renderBook(); else renderShelf();
+      alert(`导入完成，新增 ${n} 本书`);
+    }catch(e){ alert("文件格式不对，请选择之前导出的备份 JSON"); }
+  };
+  rd.readAsText(file);
+}
+
+/* ---------- 事件 ---------- */
+document.getElementById("addBookBtn").onclick = () => bookForm(null);
+document.getElementById("exportBtn").onclick = doExport;
+document.getElementById("importBtn").onclick = () => document.getElementById("importFile").click();
+document.getElementById("importFile").addEventListener("change", e => {
+  if(e.target.files[0]) doImport(e.target.files[0]);
+  e.target.value = "";
+});
+document.getElementById("q").addEventListener("input", () => {
+  if(currentBookId) renderBook(); else renderShelf();
+});
+
+renderStats();
+renderShelf();
+</script>
+</body>
+</html>
