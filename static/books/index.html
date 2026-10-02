@@ -73,6 +73,21 @@ h1{font-size:22px;margin:0;display:flex;align-items:center;gap:8px;}
 .daterow .field{flex:1;}
 footer.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;padding:0 20px;}
 .hiddenfile{display:none;}
+.tagrow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.tagpill{font-size:13px;padding:6px 13px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted);cursor:pointer;}
+.tagpill.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.tagpill .n{opacity:.65;font-size:11px;}
+.booktags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+.booktags .t{font-size:12px;background:var(--accent-soft);color:var(--accent);padding:2px 10px;border-radius:999px;}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 4px;}
+.statbox{background:#faf6ec;border-radius:12px;padding:14px 8px;text-align:center;}
+.statbox .v{font-size:26px;font-weight:800;}
+.statbox .l{font-size:12px;color:var(--muted);margin-top:4px;}
+.bar-row{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:13px;}
+.bar-row .bl{width:70px;color:var(--muted);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar-row .bt{flex:1;background:#efe8d8;border-radius:6px;height:14px;overflow:hidden;}
+.bar-row .bf{height:100%;background:var(--accent);border-radius:6px;}
+.bar-row .bv{width:32px;text-align:right;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -84,6 +99,7 @@ footer.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;
   </div>
   <div class="btnrow" id="topbtns">
     <button class="btn small" id="addBookBtn">＋ 添加图书</button>
+    <button class="btn small ghost" id="statsBtn">📊 统计</button>
     <button class="btn small ghost" id="syncBtn">☁️ 同步设置</button>
     <button class="btn small ghost" id="exportBtn">备份导出</button>
     <button class="btn small ghost" id="importBtn">导入恢复</button>
@@ -106,6 +122,7 @@ const CFG_KEY = "bookshelf.cfg";
 let db = load() || { books: [] };
 let cfg = loadCfg();
 let currentBookId = null;
+let selectedTag = "";
 
 function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } }
 function save(){
@@ -269,18 +286,29 @@ function bookMatches(b, q){
   if((b.title+" "+(b.author||"")+" "+(STATUS[b.status]||"")).toLowerCase().includes(q)) return true;
   return (b.excerpts||[]).some(x => ((x.text||"")+" "+(x.ref||"")+" "+(x.note||"")).toLowerCase().includes(q));
 }
+function allTags(){
+  const m = {};
+  db.books.forEach(b => (b.tags||[]).forEach(t => { if(t) m[t] = (m[t]||0)+1; }));
+  return Object.entries(m).sort((a,b) => b[1]-a[1] || String(a[0]).localeCompare(String(b[0]),"zh"));
+}
 function renderShelf(){
   currentBookId = null;
   document.getElementById("bookView").style.display = "none";
   const v = document.getElementById("shelfView");
   v.style.display = "";
   const q = document.getElementById("q").value.trim();
-  const books = db.books.filter(b => bookMatches(b, q));
-  if(!books.length){
-    v.innerHTML = `<div class="empty">${q ? "没有找到匹配的内容" : "书架还是空的，<br>点「＋ 添加图书」开始记录第一本书吧"}</div>`;
-    return;
+  const tags = allTags();
+  if(selectedTag && !tags.some(([t]) => t === selectedTag)) selectedTag = "";
+  const books = db.books.filter(b => bookMatches(b, q) && (!selectedTag || (b.tags||[]).includes(selectedTag)));
+  let html = "";
+  if(tags.length){
+    html += `<div class="tagrow"><button class="tagpill ${!selectedTag?"on":""}" data-tag="">全部</button>` +
+      tags.map(([t,n]) => `<button class="tagpill ${selectedTag===t?"on":""}" data-tag="${esc(t)}">${esc(t)} <span class="n">${n}</span></button>`).join("") + `</div>`;
   }
-  v.innerHTML = books.map(b => `
+  if(!books.length){
+    html += `<div class="empty">${(q||selectedTag) ? "没有找到匹配的内容" : "书架还是空的，<br>点「＋ 添加图书」开始记录第一本书吧"}</div>`;
+  } else {
+    html += books.map(b => `
     <div class="card book-card" data-id="${b.id}">
       <p class="book-title">${esc(b.title)}</p>
       <div class="book-meta">
@@ -289,9 +317,50 @@ function renderShelf(){
         ${b.rating?`<span class="stars">${stars(b.rating)}</span>`:""}
         <span>${(b.excerpts||[]).length} 条摘抄</span>
       </div>
+      ${(b.tags&&b.tags.length)?`<div class="booktags">${b.tags.map(t=>`<span class="t">${esc(t)}</span>`).join("")}</div>`:""}
     </div>`).join("");
+  }
+  v.innerHTML = html;
+  v.querySelectorAll(".tagpill").forEach(el =>
+    el.addEventListener("click", () => { selectedTag = el.dataset.tag; renderShelf(); }));
   v.querySelectorAll(".book-card").forEach(el =>
     el.addEventListener("click", () => openBook(el.dataset.id)));
+}
+function barRow(label, n, max){
+  const pct = max ? Math.round(n/max*100) : 0;
+  return `<div class="bar-row"><div class="bl">${esc(label)}</div><div class="bt"><div class="bf" style="width:${pct}%"></div></div><div class="bv">${n}</div></div>`;
+}
+function statsModal(){
+  const c = counts();
+  const notes = db.books.reduce((n,b) => n + (b.excerpts||[]).filter(x => String(x.note||"").trim()).length, 0);
+  const st = {reading:0, done:0, dropped:0};
+  db.books.forEach(b => { st[b.status] = (st[b.status]||0)+1; });
+  const tags = allTags();
+  const months = []; const now = new Date();
+  for(let i=11;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+    months.push({key, label:(d.getMonth()+1)+"月", n:0});
+  }
+  const mmap = {}; months.forEach(m => mmap[m.key]=m);
+  db.books.forEach(b => { const k = String(b.finishedAt||"").slice(0,7); if(mmap[k]) mmap[k].n++; });
+  const maxm = Math.max(1, ...months.map(m=>m.n));
+  const maxTag = Math.max(1, ...tags.map(([t,n])=>n));
+  openModal(`
+    <h2>📊 阅读统计</h2>
+    <div class="statgrid">
+      <div class="statbox"><div class="v">${c.books}</div><div class="l">本书</div></div>
+      <div class="statbox"><div class="v">${c.excerpts}</div><div class="l">条摘抄</div></div>
+      <div class="statbox"><div class="v">${notes}</div><div class="l">条笔记</div></div>
+      <div class="statbox"><div class="v">${db.books.filter(b=>(b.rating||0)>=4).length}</div><div class="l">四星以上</div></div>
+    </div>
+    <h2 style="font-size:15px;margin:18px 0 6px">状态分布</h2>
+    ${["reading","done","dropped"].map(k=>barRow(STATUS[k], st[k]||0, c.books)).join("")}
+    ${tags.length?`<h2 style="font-size:15px;margin:18px 0 6px">标签 TOP</h2>`+tags.slice(0,8).map(([t,n])=>barRow(t,n,maxTag)).join(""):""}
+    <h2 style="font-size:15px;margin:18px 0 6px">近12个月读完</h2>
+    ${months.map(m=>barRow(m.label,m.n,maxm)).join("")}
+    <div class="btnrow"><button class="btn" id="mCancel">关闭</button></div>`);
+  document.getElementById("mCancel").onclick = closeModal;
 }
 function openBook(id){ currentBookId = id; renderBook(); }
 function renderBook(){
@@ -377,6 +446,7 @@ function bookForm(b){
     <div class="field"><label>状态</label><select id="f_status">
       ${Object.keys(STATUS).map(k=>`<option value="${k}" ${b.status===k?"selected":""}>${STATUS[k]}</option>`).join("")}
     </select></div>
+    <div class="field"><label>标签（用逗号、顿号或空格分隔）</label><input id="f_tags" value="${esc((b.tags||[]).join("、"))}" placeholder="如：文学、历史"></div>
     <div class="field"><label>评分</label>${starPickerHTML(b.rating)}</div>
     <div class="daterow">
       <div class="field"><label>开始日期</label><input type="date" id="f_started" value="${esc(b.startedAt||"")}"></div>
@@ -403,6 +473,7 @@ function bookForm(b){
       rating: +document.getElementById("f_rating").value,
       startedAt: document.getElementById("f_started").value,
       finishedAt: document.getElementById("f_finished").value,
+      tags: [...new Set(document.getElementById("f_tags").value.split(/[,，、\s]+/).map(x=>x.trim()).filter(Boolean))],
     };
     if(isNew){
       db.books.unshift(Object.assign({ id: uid(), excerpts: [], createdAt: Date.now() }, data));
@@ -508,6 +579,7 @@ function importKindle(data){
 
 /* ---------- 事件 ---------- */
 document.getElementById("addBookBtn").onclick = () => bookForm(null);
+document.getElementById("statsBtn").onclick = statsModal;
 document.getElementById("syncBtn").onclick = syncSettingsForm;
 document.getElementById("exportBtn").onclick = doExport;
 document.getElementById("importBtn").onclick = () => document.getElementById("importFile").click();
