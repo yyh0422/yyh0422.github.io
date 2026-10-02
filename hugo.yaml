@@ -1,8 +1,8 @@
 baseURL: https://yyh0422.github.io/
-languageCode: zh-cn
-defaultContentLanguage: zh
+locale: zh-cn
+defaultContentLanguage: zh-cn
 title: 我的博客
-theme: PaperMod
+theme: jijian
 pagination:
   pagerSize: 10
 enableRobotsTXT: true
@@ -14,9 +14,8 @@ params:
   ShowPostNavLinks: true
   ShowBreadCrumbs: true
   ShowCodeCopyButtons: true
-  homeInfoParams:
-    Title: 你好 👋
-    Content: 欢迎来到我的博客,在这里记录学习与生活。
+  pagefind:
+    searchUI: off
 menu:
   main:
     - identifier: home
