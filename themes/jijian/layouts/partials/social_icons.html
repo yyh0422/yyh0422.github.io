@@ -1,0 +1,30 @@
+<div class="social-icons" {{ with .align}}align="{{.}}" {{- end }}>
+    {{- range site.Params.socialIcons }}
+    <div class="social-icon-container"
+        {{- if .url }} data-url="{{ trim .url " " }}"{{ end }}
+        {{- if .hoverImage }} data-hover-image="{{ trim .hoverImage " " }}"{{ end }}
+        data-title="{{ (.title | default .name) | title }}">
+        {{- if .url }}
+        <a href="{{ trim .url " " | safeURL }}" target="_blank" rel="noopener noreferrer me"
+            title="{{ (.title | default .name) | title }}">
+            {{ partial "svg.html" . }}
+        </a>
+        {{- else }}
+        <span class="social-icon-no-link" title="{{ (.title | default .name) | title }}">
+            {{ partial "svg.html" . }}
+        </span>
+        {{- end }}
+        {{- if .hoverImage }}
+        <div class="social-icon-hover-image">
+            <img src="{{ trim .hoverImage " " | safeURL }}" alt="{{ (.title | default .name) | title }} hover image" />
+        </div>
+        {{- end }}
+    </div>
+    {{- end }}
+    <!-- 移动端固定的悬停图片容器 -->
+    <div class="mobile-hover-image-container" id="mobile-hover-image-container">
+        <img src="" alt="" />
+    </div>
+    <!-- 移动端提示文字（独立于图片容器） -->
+    <div class="mobile-hover-tip" id="mobile-hover-tip">再点一次前往</div>
+</div>

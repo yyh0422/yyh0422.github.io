@@ -1,0 +1,19 @@
+{{- $bvid := .Get "bvid" -}}
+{{- $aid := .Get "aid" -}}
+{{- $cid := .Get "cid" -}}
+{{- $page := .Get "page" | default "1" -}}
+{{- $src := "" -}}
+
+{{- $autoplay := .Get "autoplay" | default "0" -}}
+
+{{- if and $aid $cid -}}
+  {{- $src = printf "//player.bilibili.com/player.html?isOutside=true&aid=%s&cid=%s&p=%s&autoplay=%s" $aid $cid $page $autoplay -}}
+{{- else if $bvid -}}
+  {{- $src = printf "//player.bilibili.com/player.html?isOutside=true&bvid=%s&p=%s&autoplay=%s" $bvid $page $autoplay -}}
+{{- end -}}
+
+{{- if $src -}}
+<iframe src="{{ $src }}" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+{{- else -}}
+<p style="color:red; text-align:center;">[Bilibili 短代码配置错误：请提供 bvid，或者 aid与cid]</p>
+{{- end -}}

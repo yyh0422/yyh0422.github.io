@@ -1,0 +1,122 @@
+# Hugo jijian（极简）
+
+[极简(jijian)](https://github.com/hcllmsx/hugo-jijian)是基于 [PaperMod](https://github.com/adityatelange/hugo-PaperMod) 二次开发的 Hugo 主题，更简洁、极致高效，针对中文用户优化。
+
+![极简(jijian)主题-名片模式首页](./docs/images/2026.03.27-极简jijian主题_首页黑白模式切换动态图.gif)
+
+## 特性概览
+
+- **可视化配置工具** — [极简(hugo-jijian)配置工具](https://ihcll.cn/hugo-jijian-config-tools/)
+- **Pagefind** 搜索 — 高性能静态搜索
+- **导航菜单增强** — 支持子菜单导航，优化移动端体验
+- **文章列表置顶功能** — 支持置顶文章，数字越小越靠前，仅支持正整数
+- **分类内循环导航** — 确保上一篇/下一篇在同分类文章中跳转（解决了 Hugo “反直觉”的 Next/Prev 逻辑问题）
+- **文章列表封面交互优化** — 鼠标悬停预览封面
+- **文章元数据增强** — 支持显示最后修改时间，优化移动端和手机端的样式
+- **完美的中文统计** — 重构字数统计逻辑，精准识别汉字、字母和数字
+- **文章内容级安全加密** — 静态本地 AES-256-GCM 加密
+- **中文古文竖排** — 完美支持中文古诗词竖排版展现
+- **图片灯箱** — medium-zoom
+- **中国本土化社交图标** — 哔哩哔哩、豆瓣等，支持悬浮显示二维码
+- **支持插入音频视频** — 使用短代码`media`
+- **网盘下载卡片** — 使用短代码`pan`，支持多网盘选项卡、提取码一键复制
+- 还有一些小细节的优化，等你探索...
+
+**支持的语言**：简体中文 | 繁體中文 | English
+
+## 更新日志
+
+### 2026-09-23
+- 新增网盘下载短代码 `pan` / `pan-item`，用于在文章中放出软件的网盘下载链接与提取码：
+  - 单网盘写一行 `pan`，多网盘在 `pan` 内放多个 `pan-item`，自动渲染为选项卡切换（支持键盘左右方向键，带 aria 无障碍标注）
+  - `provider` 参数支持按 key 快捷指定网盘（与图标文件名一致），不填时根据链接自动识别
+  - 详见 wiki 文档：[04-短代码](https://ihcll.cn/posts/jijian-wiki/wiki-04-duandaima/#8-pan)
+
+### 2026-08-31
+- **内置 Pagefind 中文搜索修复脚本**（`scripts/pf-prep.cjs`），解决可能会发生的某些中文搜不到词的问题（pagefind 已知 issue #987：索引端按相邻两字 bigram 切分、查询端按整词切分，两端不一致）。
+- 构建时在 `hugo` 之后、`pagefind` 之前执行一次预处理即可让中文任意子串可搜：
+  ```bash
+  node themes/jijian/scripts/pf-prep.cjs            # public -> _temp/pf-site
+  npx pagefind --site _temp/pf-site --output-path public/pagefind
+  ```
+  查询端已由主题 `baseof.html` 内置的"中文单字查询补丁"配合，无需额外配置。
+- 若未来 pagefind 官方修复 #987（中文按词索引），设置环境变量 `PAGEFIND_ZWSP=0` 可跳过预处理，并把 `pagefind --site` 改回 `public`、移除 `baseof.html` 中的查询补丁即可，本脚本保留不执行也无任何影响。
+- **修复多域名/CDN 线路下封面图链接写死主域名的问题**：此前文章封面 `cover`、顶部封面 `topCover`、列表/时光轴悬停预览、pagefind 搜索缩略图均输出为基于 `baseURL` 的绝对地址（如 `https://ihcll.cn/...`），访客通过 EdgeOne、Netlify、Cloudflare 等其他线路访问时，图片仍会回源到主域名，与正文图片"跟随当前域名"的行为不一致。现统一改为站内相对路径（`/posts/.../topCover.webp`），图片随当前访问域名加载。SEO 分享元信息（`og:image`、`twitter:image`、JSON-LD）与 RSS 中的图片链接仍保留为主域名绝对地址，不影响搜索引擎收录。
+
+### 2026-08-12
+- 迁移 Hugo 弃用的模板 API，消除 Hugo v0.158.0 起的构建警告：
+  - `.Language.LanguageDirection` → `.Language.Direction`（`baseof.html`）
+  - `.Language.LanguageCode` → `.Language.Locale`（`rss.xml`、`opengraph.html`）
+- **最低 Hugo 版本要求提升至 `0.158.0`**（原 `0.150.1`）。上述新字段由 Hugo v0.158.0 引入，更低版本会在构建时报错。
+- 站点配置中的 `languageCode` 键已被 Hugo 弃用，请改用 `locale`（例：`locale: zh-cn`）。`极简(hugo-jijian)配置工具`已同步更新。
+- **新增 Pagefind Component UI 搜索**，替代旧的 `PagefindUI` 搜索页。通过 `hugo.yaml` 中的 `params.pagefind.searchUI` 配置项选择模式：
+  - `modal`（默认）：Header 中显示放大镜图标按钮，点击弹出搜索弹窗，快捷键 `Ctrl + K`（Mac 上为 `Cmd + K`）打开
+  - `searchbox`：Header 中内嵌搜索框，聚焦展开、失焦缩回，支持清除按钮
+  - `off`：关闭搜索功能
+- Component UI 的暗黑模式自动跟随站点主题（`data-theme` ↔ `data-pf-theme` 同步）。
+- Component UI 中的提示文字（导航/选择/关闭等）统一由站点 `i18n` 翻译文件管理，通过 `<pagefind-config lang>` 元素在组件渲染前设置语言。
+
+### 2026-06-18
+- 为blank页面添加 Pagefind 搜索结果缩略图
+- 修复加密文章中：解密后TOC不显示的问题，以及图片灯箱失效的问题
+
+### 2026-05-01
+- 添加用于处理音频和视频的媒体短代码`media`。若未明确指定媒体类型，将根据文件扩展名自动识别。支持自动播放、静音、循环播放、封面图等可选属性配置。可在[04-短代码](https://ihcll.cn/posts/jijian-wiki/wiki-04-duandaima/#7-media)查看详情。
+
+### 2026-04-11
+- 添加PWA支持。详情可在wiki文档：[03-配置详解](https://ihcll.cn/posts/jijian-wiki/wiki-03-peizhixiangjie/) 中搜索相关内容查看。
+- `极简(hugo-jijian)配置工具`同步更新支持PWA相关配置。
+- 修复了鼠标从父菜单移到子菜单时，子菜单在鼠标移动的过程中，有概率会消失的问题。
+
+### 2026-04-07
+- 修复了在不配置某一菜单的url的情况下，菜单栏的样式问题。
+- 菜单栏的url新增了新标签页的选项。即使你填写的是一个内部链接，你也可以强制它在新标签页打开。通过添加`params.external: true`参数即可。
+
+### 2026-04-06
+- 修复Blog Mode和Portal Mode下，首页文章列表置顶失效的问题。
+- 优化了首页的页面布局的样式，避免出现双滚动条。
+- 优化了社交图标悬浮显示二维码的样式。
+- 调整菜单栏的样式，使用下划线动画而不是加粗。
+- 修复pagefind搜索时错误抓取了topCover的问题，现在抓取的是cover，没有则使用defaultImage。如果defaultImage也没有，就显示网站的favicon图标。
+- EdgeOne Pages其实是有Hugo支持的，只是在列表中没有显示。但它依然支持识别HUGO_VERSION环境变量，因此我们可以不需要使用edgeone.json文件来下载hugo了。直接移除，然后和其他云平台使用同一`package.json`文件。
+
+### 2026-03-31
+- 代码高亮样式改为github的样式，支持黑白模式。且不再支持更换为其他高亮风格。
+- 将所有 HTTP 请求升级为 HTTPS（修复网易云音乐外链播放器在手机端不显示的问题）。
+- 完美支持了原生 GitHub 样式的提示框（Alerts），现在只需使用 `> [!NOTE]` 等语法即可直接生成漂亮的警示块。
+- 用户在创建评论时，若文章标题为中文，此前由 giscus [bot] 在 GitHub Discussions 中生成的帖子标题会显示为 URL 编码格式，目前该问题已修复。
+- 优化了giscus评论系统的配置，现在可以在`hugo.yaml`中配置`termSuffix`参数，用于指定GitHub Discussions帖子标题后缀，配置后生成讨论帖的标题格式为“文章名-XXXX”。
+- 带密码或受保护的文章默认不开启评论，不受全局设置的影响，除非你在Front Matter中配置`comments: true`手动开启评论。
+
+### 2026-03-30
+- 搜索页面中的文字现在由`i18n`管理。
+- 文章的顶部封面图改为32:5的比例。
+- 更新blank布局，支持在front matter中手动开启评论，不受全局设置的影响。
+- 优化文章中引用的文字的样式，之前引用的文字和正文的样式相比除了左边有一条竖线，其他一毛一样。现在引用的文字有背景色，且字小更密集。
+
+### 2026-03-30
+- 新增了 `文章列表置顶功能`，在文章的 `Front Matter` 中添加 `pin: 1` 即可置顶文章，数字越小越靠前，仅支持正整数。
+- 优化了文章中“上下篇”按钮的逻辑，支持`分类内循环`。
+- 在文章底部的标签（tags）前添加了`分类（categories）`的链接显示。
+- 优化手机端的显示，posts列表页的“下一页”按钮居中了，避免和“返回顶部”按钮重叠。优化手机端列表也，点击时不会再显示封面图了。封面图是电脑端鼠标悬停时才显示的。
+- 算啦，我不想搞Github上的这个 📚wiki 了，直接去我网站看吧，传送门在这里：[莫莫先生丨Jijian Wiki](https://ihcll.cn/categories/jijian-wiki/)。
+
+## 📚文档 JijianWiki
+
+去这里看吧：[莫莫先生丨Jijian Wiki](https://ihcll.cn/categories/jijian-wiki/)
+
+## 致谢
+
+- [PaperMod](https://github.com/adityatelange/hugo-PaperMod) — 主题核心骨架
+- [Pagefind](https://pagefind.app/) — 高性能静态搜索引擎
+- [medium-zoom](https://github.com/francoischalifour/medium-zoom) — 图片灯箱
+- [giscus](https://github.com/giscus/giscus) — 评论系统
+- [Node.js crypto](https://nodejs.org/api/crypto.html) — 构建时文章内容加密
+- [Web Crypto API](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Crypto_API) — 浏览器端密码验证解密
+- [js-yaml](https://github.com/nodeca/js-yaml) — YAML 解析依赖（加密脚本必需）
+- [Shields.io](https://shields.io/) — 静态徽标生成服务
+- [在线字数统计](https://www.eteste.com/) — 为本主题提供了中文汉字、标点及数字字母的统计算法匹配思路
+
+## 许可证
+
+[MIT License](LICENSE)

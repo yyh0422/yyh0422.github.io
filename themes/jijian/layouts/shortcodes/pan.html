@@ -1,0 +1,48 @@
+{{- /* pan：网盘下载短代码
+     单网盘：{{< pan name="软件名" url="https://pan.baidu.com/s/xxx" pwd="a1b2" note="永久有效" />}}
+     多网盘：{{< pan name="软件名" >}} 内放若干 {{< pan-item ... >}}，渲染为选项卡
+     说明：选项卡按钮由 pan.js 依据 pan-panel 的 data-provider 动态生成（Hugo 父短代码
+     无法可靠读取子短代码数据，故不在此渲染标签行）
+*/ -}}
+{{- .Page.Store.Set "loadPan" true -}}
+{{- $url := .Get "url" -}}
+{{- $name := .Get "name" | default "" -}}
+
+{{- if $url -}}
+  {{- /* 单网盘模式：渲染为与多网盘一致的选项卡样式，只是只有一个标签 */ -}}
+  {{- $pwd := .Get "pwd" | default (.Get "code") | default "" -}}
+  {{- $note := .Get "note" | default "" -}}
+  {{- $provider := .Get "provider" | default "" -}}
+  {{- $info := partial "pan-info.html" (dict "url" $url "provider" $provider) -}}
+  {{- /* 生成页面内唯一 id 前缀 */ -}}
+  {{- $idx := .Page.Store.Get "panSingleIdx" | default 0 -}}
+  {{- .Page.Store.Set "panSingleIdx" (add $idx 1) -}}
+  <div class="pan-card pan-card--tabs">
+    {{- with $name }}<div class="pan-head"><span class="pan-name">{{ . }}</span></div>{{ end -}}
+    <div class="pan-tabs" role="tablist" aria-label="网盘下载"></div>
+    <div class="pan-panels">
+      <div class="pan-panel" id="pan-s-{{ $idx }}" data-provider="{{ $info.name }}" hidden>
+        <span class="pan-tab-src" hidden aria-hidden="true">{{ $info.icon }}</span>
+        {{- partial "pan-actions.html" (dict "url" $url "pwd" $pwd "note" $note) -}}
+      </div>
+    </div>
+  </div>
+  {{- /* 无 JS 时降级为全部面板展开 */ -}}
+  {{- if not (.Page.Store.Get "panNoscript") -}}
+    {{- .Page.Store.Set "panNoscript" true -}}
+    <noscript><style>.pan-panel[hidden]{display:block !important}</style></noscript>
+  {{- end -}}
+{{- else -}}
+  {{- /* 多网盘模式：选项卡容器，子项由 pan-item 渲染为面板 */ -}}
+  <div class="pan-card pan-card--tabs">
+    {{- with $name }}<div class="pan-head"><span class="pan-name">{{ . }}</span></div>{{ end -}}
+    <div class="pan-tabs" role="tablist" aria-label="网盘下载"></div>
+    <div class="pan-panels">{{ .Inner }}</div>
+  </div>
+
+  {{- /* 无 JS 时降级为全部面板展开 */ -}}
+  {{- if not (.Page.Store.Get "panNoscript") -}}
+    {{- .Page.Store.Set "panNoscript" true -}}
+    <noscript><style>.pan-panel[hidden]{display:block !important}</style></noscript>
+  {{- end -}}
+{{- end -}}
