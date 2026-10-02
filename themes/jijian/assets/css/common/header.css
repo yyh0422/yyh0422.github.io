@@ -1,0 +1,553 @@
+.header {
+    position: relative;
+    z-index: 100;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+}
+
+.nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    max-width: min(calc(var(--nav-width) + var(--gap) * 2), 100vw);
+    margin-inline-start: auto;
+    margin-inline-end: auto;
+    line-height: var(--header-height);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.nav a {
+    display: block;
+}
+
+.logo,
+#menu {
+    display: flex;
+    margin: auto var(--gap);
+}
+
+.logo {
+    flex-wrap: inherit;
+}
+
+.logo a {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.logo a img, .logo a svg {
+    display: inline;
+    vertical-align: middle;
+    pointer-events: none;
+    transform: translate(0, -10%);
+    border-radius: 6px;
+    margin-inline-end: 8px;
+}
+
+button#theme-toggle {
+    font-size: 26px;
+    margin: auto 4px;
+}
+
+/* Pagefind Component UI 搜索 trigger（modal-trigger / searchbox） */
+.search-trigger {
+    margin: auto 4px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 26px;
+    line-height: var(--header-height);
+}
+
+/* 隐藏保留的 pagefind-modal-trigger（仅用于保留 Ctrl+K 快捷键与打开 modal 的逻辑） */
+.search-trigger-hidden {
+    display: none !important;
+}
+
+/* searchbox 内部元素垂直居中修复（抵消 .search-trigger 的 line-height 继承） */
+.pf-searchbox-input-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    line-height: normal !important;
+}
+.pf-searchbox-input {
+    width: 100% !important;
+}
+.pf-trigger-shortcut,
+.pf-trigger-shortcut .pf-trigger-key {
+    line-height: 1 !important;
+}
+pagefind-searchbox {
+    width: 220px !important;
+    transition: width 0.3s ease;
+}
+.pf-searchbox-input:focus,
+.pf-searchbox-input:focus-visible {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* searchbox 清除按钮（叉叉） */
+.pf-searchbox-clear {
+    position: absolute !important;
+    inset-inline-end: 10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 20px !important;
+    height: 20px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 50% !important;
+    color: var(--pf-text-muted) !important;
+    cursor: pointer !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 2 !important;
+    transition: background-color 0.15s, color 0.15s !important;
+}
+
+.pf-searchbox-clear[data-pf-visible="true"] {
+    display: flex !important;
+}
+
+.pf-searchbox-clear:hover {
+    background: var(--pf-hover) !important;
+    color: var(--pf-text) !important;
+}
+
+/* 清除按钮可见时隐藏快捷键徽标 */
+.pf-searchbox-input-wrapper:has(.pf-searchbox-clear[data-pf-visible="true"]) .pf-trigger-shortcut {
+    display: none !important;
+}
+
+/* 清除按钮可见时调整输入框右侧内边距 */
+.pf-searchbox-input-wrapper:has(.pf-searchbox-clear[data-pf-visible="true"]) .pf-searchbox-input {
+    padding-inline-end: 36px !important;
+}
+
+/* searchbox 底部键盘提示栏（导航/选择/关闭）：紧凑化，避免继承 header 的 line-height 导致过高 */
+.pf-searchbox-footer {
+    padding: 4px 10px !important;
+    line-height: normal !important;
+}
+.pf-searchbox-footer-hint,
+.pf-searchbox-footer-key {
+    line-height: normal !important;
+}
+
+/* 修复 Pagefind announcer（无障碍公告元素）导致页面多出 1px 滚动条的问题：
+   announcer 容器默认 position:static，其 absolute 子元素（height:1px）会相对于初始包含块定位，延伸到文档底部之下 */
+[data-pagefind-announcer] {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+}
+
+button.menu-toggle {
+    display: none;
+    font-size: 26px;
+    margin: auto 4px;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+}
+
+[data-theme="dark"] #moon {
+    display: none;
+}
+
+[data-theme="light"] #sun {
+    display: none;
+}
+
+#menu {
+    list-style: none;
+    word-break: keep-all;
+    white-space: nowrap;
+    position: relative;
+    overflow: visible;
+    display: flex;
+}
+
+#menu li + li {
+    margin-inline-start: var(--gap);
+}
+
+#menu > li {
+    display: inline-block;
+    position: relative;
+}
+
+#menu a {
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.2;
+    padding-bottom: 4px;
+    font-weight: 500;
+    width: auto;
+    white-space: nowrap;
+}
+
+/* 菜单文字 span 需要 position:relative 来承载 ::after 下划线 */
+#menu > li > a > span {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 2px;
+}
+
+/* 下划线动画 - 放在 span 上，只覆盖文字，不延伸到箭头 */
+#menu > li > a > span::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
+}
+
+/* 鼠标悬停在整个 <a> 上时，span 的下划线生长 */
+#menu > li > a:hover > span::after {
+    transform: scaleX(1);
+}
+
+#menu .active {
+    font-weight: 500;
+}
+
+/* 当前活跃菜单项始终显示下划线 */
+#menu > li > a > span.active::after {
+    transform: scaleX(1);
+}
+
+/* Submenu Styles */
+#menu .has-children > a {
+    position: relative;
+}
+
+.submenu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    min-width: auto;
+    list-style: none;
+    margin: -8px 0 0 0;
+    padding: 0;
+    white-space: nowrap;
+    line-height: 1.2;
+    /* 子菜单水平排列 */
+    flex-direction: row;
+    align-items: center;
+    gap: var(--gap);
+}
+
+/* 增加透明桥接伪元素，解决父子菜单切换时的悬停丢失问题 */
+.submenu::before {
+    content: "";
+    position: absolute;
+    top: -20px; /* 向上延伸到父菜单区域 */
+    left: 0;
+    right: 0;
+    height: 20px; /* 覆盖间隙 */
+    background: transparent;
+}
+
+.submenu-item {
+    display: inline-block;
+    width: auto;
+    padding: 0;
+    height: auto;
+    margin: 0;
+}
+
+/* 重置子菜单项的边距 */
+.submenu-item + .submenu-item {
+    margin-inline-start: 0 !important;
+    margin-top: 0;
+}
+
+.submenu-item a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    font-size: 16px;
+    color: var(--primary);
+    text-decoration: none;
+    margin: 0;
+    width: auto;
+    line-height: 1.2;
+    padding-bottom: 4px;
+    font-weight: 500;
+    position: relative;
+}
+
+/* 子菜单项也使用下划线动画 */
+.submenu-item a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
+}
+
+.submenu-item a:hover::after {
+    transform: scaleX(1);
+}
+
+.submenu-item .active {
+    background-color: transparent;
+    border-bottom: none;
+    font-weight: 700;
+}
+
+/* 活跃子菜单项始终显示下划线 */
+.submenu-item a:has(.active)::after {
+    transform: scaleX(1);
+}
+
+.submenu-item span {
+    padding: 0;
+    margin: 0;
+}
+
+/* Show submenu on hover */
+#menu .has-children:hover > .submenu {
+    display: flex;
+}
+
+/* 菜单遮罩样式 */
+.menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.menu-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    /* 显示汉堡菜单按钮 */
+    button.menu-toggle {
+        display: block;
+        z-index: 1001;
+    }
+    
+    /* 隐藏默认菜单 */
+    #menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        background: var(--theme);
+        z-index: 1000;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        overflow-y: auto;
+        overflow-x: hidden;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        /* 确保菜单覆盖整个屏幕，包括滚动条区域 */
+        padding: 2rem;
+        box-sizing: border-box;
+    }
+    
+    /* 显示菜单时的样式 */
+    #menu.active {
+        display: flex;
+        opacity: 1;
+        align-items: flex-start;
+        text-align: left;
+    }
+    
+    /* 重置菜单项样式 */
+    #menu li + li {
+        margin-inline-start: 0;
+    }
+    
+    #menu > li {
+        display: block;
+        margin: 0 0 calc(var(--gap) * 1) 0;
+        width: 100%;
+        max-width: min(400px, calc(100vw - 4rem));
+    }
+    
+    #menu a {
+        font-size: 24px;
+        display: flex;
+        justify-content: flex-start;
+        padding: calc(var(--gap) * 0.5) var(--gap);
+        line-height: 1.5;
+        /* 增加文字对比度 */
+        color: var(--primary);
+        width: 100%;
+        max-width: min(400px, calc(100vw - 4rem));
+        margin: 0;
+    }
+    
+    /* 子菜单样式调整 - 简化层级结构 */
+    .submenu {
+        display: block;
+        position: static;
+        transform: none;
+        min-width: auto;
+        margin: 0;
+        padding: 0;
+        padding-left: calc(var(--gap) * 1.5);
+        background: var(--theme);
+        width: 100%;
+        max-width: min(400px, calc(100vw - 4rem));
+    }
+    
+    .submenu-item {
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* 顶级菜单项样式（包括父菜单和普通菜单项） */
+    #menu > li > a {
+        font-size: 28px;
+        padding: calc(var(--gap) * 0.375) var(--gap);
+        line-height: 1.5;
+        color: var(--primary);
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        width: 100%;
+        max-width: min(400px, calc(100vw - 4rem));
+        margin: 0;
+        font-weight: 700;
+    }
+    
+    /* 子菜单项样式 */
+    .submenu-item a {
+        font-size: 18px;
+        padding: calc(var(--gap) * 0.25) 0;
+        line-height: 1.5;
+        color: var(--tertiary);
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        width: 100%;
+        max-width: min(400px, calc(100vw - 4rem));
+        margin: 0;
+        font-weight: 400;
+    }
+    
+    /* 移动端父菜单悬停效果：添加文字阴影 */
+    #menu > li > a:hover {
+        font-weight: inherit;
+        text-shadow: 0 0 1px currentColor, 0 0 1px currentColor;
+    }
+    
+    /* 恢复移动端子菜单悬停效果：变粗 */
+    .submenu-item a:hover {
+        text-shadow: 0 0 1px currentColor, 0 0 1px currentColor;
+    }
+    
+    #menu .active:hover {
+        text-shadow: 0 0 1px currentColor, 0 0 1px currentColor;
+    }
+    
+    /* 调整子菜单项间距 */
+    .submenu-item + .submenu-item {
+        margin-top: calc(var(--gap) * 0.125);
+    }
+    
+    /* 隐藏子菜单箭头 */
+    #menu .has-children > a svg {
+        display: none;
+    }
+    
+    /* 重置活动项样式 - 移动端也用下划线代替加粗 */
+    #menu .active {
+        border-bottom: 2px solid currentColor;
+        font-weight: inherit;
+    }
+    
+    /* 移动端禁用悬停下划线动画 */
+    #menu > li > a > span::after,
+    .submenu-item a::after {
+        display: none;
+    }
+    
+    /* 移动端子菜单恢复垂直排列，重置负边距 */
+    .submenu {
+        flex-direction: column;
+        gap: 0;
+        margin: 0;
+    }
+    
+    /* 移动端覆盖桌面端的 hover 规则，防止触摸时子菜单变成水平布局 */
+    #menu .has-children:hover > .submenu {
+        display: block;
+    }
+    
+    .submenu-item {
+        display: block;
+    }
+    
+    /* 增强遮罩效果 */
+    .menu-overlay {
+        background: rgba(0, 0, 0, 0.7);
+    }
+}
+
+.lang-switch li,
+.lang-switch ul,
+.logo-switches {
+    display: inline-flex;
+    margin: auto 4px;
+}
+
+.lang-switch {
+    display: flex;
+    flex-wrap: inherit;
+}
+
+.lang-switch a {
+    margin: auto 3px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.logo-switches {
+    flex-wrap: inherit;
+}

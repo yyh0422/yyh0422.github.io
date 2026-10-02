@@ -1,0 +1,203 @@
+.main {
+    position: relative;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    max-width: min(calc(var(--main-width) + var(--gap) * 2), 100vw);
+    margin: auto;
+    padding: var(--gap);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.page-header h1 {
+    font-size: 40px;
+}
+
+.pagination {
+    display: flex;
+}
+
+.pagination a {
+    color: var(--theme);
+    font-size: 13px;
+    line-height: 36px;
+    background: var(--primary);
+    border-radius: calc(36px / 2);
+    padding: 0 16px;
+}
+
+.pagination .next {
+    margin-inline-start: auto;
+}
+
+
+.social-icons .social-icon-container {
+    position: relative;
+    display: inline-block;
+}
+
+.social-icons a,
+.social-icons .social-icon-no-link {
+    display: inline-flex;
+    padding: 10px;
+}
+
+.social-icons a svg,
+.social-icons .social-icon-no-link svg {
+    height: 26px;
+    width: 26px;
+}
+
+.social-icons .social-icon-no-link {
+    cursor: default;
+    color: var(--primary);
+}
+
+.social-icon-hover-image {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    display: none;
+    z-index: 1000;
+    margin-top: 10px;
+    pointer-events: none;
+    /* 增加动画效果 */
+    animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: translateX(-50%) scale(0.95); }
+    to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+.social-icon-hover-image img {
+    /* 允许图片根据高度自动缩小，且不超出视口高度的 45% */
+    max-width: min(323px, 90vw);
+    max-height: min(323px, 45vh);
+    object-fit: contain;
+    border-radius: 4px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: var(--theme); /* 确保背景色统一 */
+}
+
+/* 针对矮视口屏幕的避障优化（调整至 1100px 阈值，涵盖大部分笔记本屏幕） */
+@media screen and (max-height: 1100px) {
+    .social-icon-hover-image {
+        /* 在高度不足时，改为向上弹出，避开页脚和底部 */
+        top: auto;
+        bottom: 120%; 
+        margin-top: 0;
+        margin-bottom: 5px;
+        animation: fadeInScaleUp 0.2s ease-out;
+    }
+
+    @keyframes fadeInScaleUp {
+        from { opacity: 0; transform: translateX(-50%) scale(0.95); }
+        to { opacity: 1; transform: translateX(-50%) scale(1); }
+    }
+
+    .social-icon-hover-image img {
+        /* 在 1100px 以下就开始进行更积极的弹性缩放 */
+        max-height: 35vh; 
+        max-width: min(323px, 85vw);
+    }
+}
+
+.social-icon-container:hover .social-icon-hover-image {
+    opacity: 1;
+    display: block;
+    pointer-events: auto;
+}
+
+/* 移动端固定悬停图片容器 */
+.mobile-hover-image-container {
+    display: none;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+}
+
+.mobile-hover-image-container.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.mobile-hover-image-container img {
+    max-width: 280px;
+    max-height: 280px;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.mobile-hover-tip {
+    display: none;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 80px;
+    padding: 8px 16px;
+    background: var(--primary);
+    opacity: 0.6;
+    color: var(--theme);
+    border-radius: 20px;
+    font-size: 14px;
+    white-space: nowrap;
+    z-index: 9999;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.mobile-hover-tip.active {
+    display: block;
+}
+
+/* 移动端显示固定悬停图片 */
+@media (max-width: 768px) {
+    .mobile-hover-image-container {
+        display: block;
+        /* 显示在屏幕上方居中，不遮挡社交图标 */
+        top: 20px;
+    }
+
+    /* 移动端禁用默认的hover效果 */
+    .social-icon-container:hover .social-icon-hover-image {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+}
+
+code {
+    direction: ltr;
+}
+
+div.highlight,
+pre {
+    position: relative;
+}
+
+.copy-code {
+    display: none;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(78, 78, 78, 0.8);
+    border-radius: var(--radius);
+    padding: 0 5px;
+    font-size: 14px;
+    user-select: none;
+}
+
+div.highlight:hover .copy-code,
+pre:hover .copy-code {
+    display: block;
+}
