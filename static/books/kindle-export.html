@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>从 Kindle 导入标注</title>
+<style>
+:root{--bg:#f6f1e7;--card:#fffdf8;--ink:#2e2a23;--muted:#978b78;--accent:#a3541f;--line:#e7dcc6;--radius:14px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:16px;line-height:1.7}
+.wrap{max-width:680px;margin:0 auto;padding:24px 18px 80px}
+a{color:var(--accent)}
+h1{font-size:22px}h2{font-size:17px;margin-top:28px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:16px 0}
+.bm{display:inline-block;background:var(--accent);color:#fff!important;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700;margin:8px 0}
+code{background:#efe8d8;padding:2px 6px;border-radius:6px;font-size:14px}
+ol li,ul li{margin-bottom:10px}
+.muted{color:var(--muted);font-size:13px}
+button.cp{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer}
+.back{color:var(--accent);text-decoration:none;font-weight:600}
+</style>
+</head>
+<body><div class="wrap">
+<a class="back" href="/books/">‹ 返回书架</a>
+<h1>📑 从 Kindle 导入标注</h1>
+<p>亚马逊没有开放接口，这个小工具直接在<b>你自己的浏览器</b>里读取 <b>read.amazon.com/notebook</b> 页面，把每本书的标注抓成 JSON 文件。再用书架页的「导入恢复」吃进去就行，全程不经过第三方服务器。</p>
+<div class="card">
+<h2 style="margin-top:0">步骤（在电脑浏览器上操作，手机不好拖书签）</h2>
+<ol>
+<li>把这个按钮拖到浏览器书签栏：<br><a class="bm" href="javascript:%2F*%20Run%20as%20a%20bookmarklet%20on%20read.amazon.com%2Fnotebook.%20No%20third-party%20requests.%20*%2F%0A(async%20()%20%3D%3E%20%7B%0A%20%20%22use%20strict%22%3B%0A%20%20if%20(location.hostname%20!%3D%3D%20%22read.amazon.com%22%20%7C%7C%20location.pathname%20!%3D%3D%20%22%2Fnotebook%22)%20%7B%0A%20%20%20%20alert(%22Open%20https%3A%2F%2Fread.amazon.com%2Fnotebook%20and%20sign%20in%20first.%22)%3B%0A%20%20%20%20return%3B%0A%20%20%7D%0A%20%20if%20(document.getElementById(%22book-notes-export-progress%22))%20return%3B%0A%20%20const%20panel%20%3D%20document.createElement(%22div%22)%3B%0A%20%20panel.id%20%3D%20%22book-notes-export-progress%22%3B%0A%20%20Object.assign(panel.style%2C%20%7Bposition%3A%22fixed%22%2Cright%3A%2216px%22%2Ctop%3A%2216px%22%2CzIndex%3A%222147483647%22%2C%0A%20%20%20%20background%3A%22%23fff%22%2Ccolor%3A%22%23111%22%2Cpadding%3A%2216px%22%2Cborder%3A%222px%20solid%20%23222%22%2CmaxWidth%3A%22420px%22%2C%0A%20%20%20%20font%3A%2215px%2F1.5%20system-ui%22%2CboxShadow%3A%220%204px%2024px%20%230003%22%7D)%3B%0A%20%20const%20status%20%3D%20document.createElement(%22div%22)%3B%0A%20%20const%20stop%20%3D%20document.createElement(%22button%22)%3B%0A%20%20stop.textContent%20%3D%20%22Stop%20and%20save%20progress%22%3B%0A%20%20panel.append(status%2C%20stop)%3B%0A%20%20document.body.append(panel)%3B%0A%20%20let%20cancelled%20%3D%20false%3B%0A%20%20stop.onclick%20%3D%20()%20%3D%3E%20%7B%20cancelled%20%3D%20true%3B%20%7D%3B%0A%20%20const%20pause%20%3D%20ms%20%3D%3E%20new%20Promise(resolve%20%3D%3E%20setTimeout(resolve%2C%20ms))%3B%0A%20%20const%20wait%20%3D%20async%20(predicate%2C%20label)%20%3D%3E%20%7B%0A%20%20%20%20for%20(let%20n%20%3D%200%3B%20n%20%3C%20150%3B%20n%2B%2B)%20%7B%0A%20%20%20%20%20%20if%20(cancelled)%20throw%20new%20Error(%22Stopped%20by%20user%22)%3B%0A%20%20%20%20%20%20if%20(predicate())%20return%3B%0A%20%20%20%20%20%20await%20pause(100)%3B%0A%20%20%20%20%7D%0A%20%20%20%20throw%20new%20Error(%60Timed%20out%3A%20%24%7Blabel%7D%60)%3B%0A%20%20%7D%3B%0A%20%20const%20text%20%3D%20node%20%3D%3E%20node%3F.textContent%3F.replace(%2F%5Cs%2B%2Fg%2C%20%22%20%22).trim()%20%7C%7C%20%22%22%3B%0A%20%20const%20lastCursor%20%3D%20(root%2C%20selector)%20%3D%3E%20%5B...root.querySelectorAll(selector)%5D.at(-1)%3F.value%20%7C%7C%20%22%22%3B%0A%20%20const%20output%20%3D%20%7Bversion%3A1%2Csource%3A%22https%3A%2F%2Fread.amazon.com%2Fnotebook%22%2C%0A%20%20%20%20exported_at%3Anew%20Date().toISOString()%2Ccomplete%3Afalse%2Cbooks%3A%5B%5D%2Cerrors%3A%5B%5D%7D%3B%0A%20%20try%20%7B%0A%20%20%20%20status.textContent%20%3D%20%22Loading%20your%20annotated%20books.%20Keep%20this%20tab%20open%20while%20the%20export%20runs.%22%3B%0A%20%20%20%20const%20search%20%3D%20document.getElementById(%22kp-notebook-search-input%22)%3B%0A%20%20%20%20if%20(search%3F.value)%20%7B%0A%20%20%20%20%20%20search.value%20%3D%20%22%22%3B%0A%20%20%20%20%20%20search.dispatchEvent(new%20Event(%22input%22%2C%20%7Bbubbles%3Atrue%7D))%3B%0A%20%20%20%20%20%20search.dispatchEvent(new%20Event(%22keyup%22%2C%20%7Bbubbles%3Atrue%7D))%3B%0A%20%20%20%20%7D%0A%20%20%20%20const%20library%20%3D%20document.getElementById(%22library%22)%3B%0A%20%20%20%20if%20(!library)%20throw%20new%20Error(%22Kindle%20library%20not%20found.%20Check%20that%20you%20are%20signed%20in.%22)%3B%0A%20%20%20%20const%20list%20%3D%20library.querySelector(%22.a-scroller%22)%3B%0A%20%20%20%20while%20(lastCursor(library%2C%20%22.kp-notebook-library-next-page-start%22))%20%7B%0A%20%20%20%20%20%20const%20before%20%3D%20library.querySelectorAll(%22.kp-notebook-library-each-book%22).length%3B%0A%20%20%20%20%20%20const%20cursor%20%3D%20lastCursor(library%2C%20%22.kp-notebook-library-next-page-start%22)%3B%0A%20%20%20%20%20%20if%20(!list)%20throw%20new%20Error(%22Library%20scrolling%20area%20not%20found%22)%3B%0A%20%20%20%20%20%20list.scrollTop%20%3D%20list.scrollHeight%3B%0A%20%20%20%20%20%20list.dispatchEvent(new%20Event(%22scroll%22%2C%20%7Bbubbles%3Atrue%7D))%3B%0A%20%20%20%20%20%20await%20wait(()%20%3D%3E%20library.querySelectorAll(%22.kp-notebook-library-each-book%22).length%20%3E%20before%20%7C%7C%0A%20%20%20%20%20%20%20%20lastCursor(library%2C%20%22.kp-notebook-library-next-page-start%22)%20!%3D%3D%20cursor%2C%20%22loading%20more%20books%22)%3B%0A%20%20%20%20%7D%0A%20%20%20%20const%20books%20%3D%20%5B...library.querySelectorAll(%22.kp-notebook-library-each-book%22)%5D%0A%20%20%20%20%20%20.map(node%20%3D%3E%20(%7Basin%3Anode.id%2Ctitle%3Atext(node.querySelector(%22h2%22))%2C%0A%20%20%20%20%20%20%20%20cover_url%3Anode.querySelector(%22img.kp-notebook-cover-image%22)%3F.src%20%7C%7C%20null%2C%0A%20%20%20%20%20%20%20%20author%3Atext(node.querySelector(%22p%22)).replace(%2F%5EBy%3A%5Cs*%2Fi%2C%20%22%22)%7D))%3B%0A%20%20%20%20output.expected_books%20%3D%20books.length%3B%0A%20%20%20%20if%20(!books.length)%20throw%20new%20Error(%22No%20annotated%20books%20found%22)%3B%0A%20%20%20%20for%20(const%20%5Bi%2C%20book%5D%20of%20books.entries())%20%7B%0A%20%20%20%20%20%20if%20(cancelled)%20throw%20new%20Error(%22Stopped%20by%20user%22)%3B%0A%20%20%20%20%20%20status.textContent%20%3D%20%60Exporting%20%24%7Bi%20%2B%201%7D%20of%20%24%7Bbooks.length%7D%3A%20%24%7Bbook.title%7D%60%3B%0A%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20const%20node%20%3D%20document.getElementById(book.asin)%3B%0A%20%20%20%20%20%20%20%20const%20link%20%3D%20node%3F.querySelector(%22a%22)%3B%0A%20%20%20%20%20%20%20%20if%20(!link)%20throw%20new%20Error(%22Book%20link%20no%20longer%20available%22)%3B%0A%20%20%20%20%20%20%20%20link.click()%3B%0A%20%20%20%20%20%20%20%20await%20wait(()%20%3D%3E%20document.getElementById(%22kp-notebook-annotations-asin%22)%3F.value%20%3D%3D%3D%20book.asin%20%26%26%0A%20%20%20%20%20%20%20%20%20%20document.getElementById(%22kp-notebook-annotations%22)%2C%20%22opening%20book%22)%3B%0A%20%20%20%20%20%20%20%20let%20annotations%20%3D%20document.getElementById(%22kp-notebook-annotations%22)%3B%0A%20%20%20%20%20%20%20%20while%20(lastCursor(annotations%2C%20%22.kp-notebook-annotations-next-page-start%22))%20%7B%0A%20%20%20%20%20%20%20%20%20%20const%20cursor%20%3D%20lastCursor(annotations%2C%20%22.kp-notebook-annotations-next-page-start%22)%3B%0A%20%20%20%20%20%20%20%20%20%20const%20scroller%20%3D%20document.getElementById(%22annotation-scroller%22)%3B%0A%20%20%20%20%20%20%20%20%20%20if%20(!scroller)%20throw%20new%20Error(%22Highlight%20scrolling%20area%20not%20found%22)%3B%0A%20%20%20%20%20%20%20%20%20%20scroller.scrollTop%20%3D%20scroller.scrollHeight%3B%0A%20%20%20%20%20%20%20%20%20%20scroller.dispatchEvent(new%20Event(%22scroll%22%2C%20%7Bbubbles%3Atrue%7D))%3B%0A%20%20%20%20%20%20%20%20%20%20await%20wait(()%20%3D%3E%20lastCursor(document.getElementById(%22kp-notebook-annotations%22)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%22.kp-notebook-annotations-next-page-start%22)%20!%3D%3D%20cursor%2C%20%22loading%20more%20highlights%22)%3B%0A%20%20%20%20%20%20%20%20%20%20annotations%20%3D%20document.getElementById(%22kp-notebook-annotations%22)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20const%20highlights%20%3D%20%5B%5D%3B%0A%20%20%20%20%20%20%20%20let%20unavailable%20%3D%200%3B%0A%20%20%20%20%20%20%20%20for%20(const%20row%20of%20annotations.children)%20%7B%0A%20%20%20%20%20%20%20%20%20%20const%20header%20%3D%20row.querySelector('%5Bid%3D%22annotationHighlightHeader%22%5D')%3B%0A%20%20%20%20%20%20%20%20%20%20if%20(!header)%20continue%3B%0A%20%20%20%20%20%20%20%20%20%20const%20value%20%3D%20text(row.querySelector('%5Bid%3D%22highlight%22%5D'))%3B%0A%20%20%20%20%20%20%20%20%20%20if%20(value)%20highlights.push(%7Btext%3Avalue%2Creference%3Atext(header)%7D)%3B%0A%20%20%20%20%20%20%20%20%20%20else%20unavailable%2B%2B%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%2F%2F%20Read%20only%20the%20count%20label.%20The%20container's%20textContent%20concatenates%0A%20%20%20%20%20%20%20%20%2F%2F%20the%20access%20year%20with%20this%20count%20(e.g.%202024%20%2B%2032%20becomes%20202432).%0A%20%20%20%20%20%20%20%20const%20reported%20%3D%20text(document.getElementById(%22kp-notebook-annotation-count%22))%0A%20%20%20%20%20%20%20%20%20%20.match(%2F%5E(%5B%5Cd%2C%5D%2B)%5Cs%2BHighlights%3F%5Cs*%5C%7C%2Fi)%3B%0A%20%20%20%20%20%20%20%20const%20expected%20%3D%20reported%20%3F%20Number(reported%5B1%5D.replaceAll(%22%2C%22%2C%20%22%22))%20%3A%20null%3B%0A%20%20%20%20%20%20%20%20%2F%2F%20Capture%20the%20access%20date%20separately%20from%20highlight%20counts%20and%20passages.%0A%20%20%20%20%20%20%20%20const%20accessLabel%20%3D%20%5B...document.getElementById(%22annotation-scroller%22).querySelectorAll(%22span%22)%5D%0A%20%20%20%20%20%20%20%20%20%20.map(text).find(value%20%3D%3E%20%2F%5ELast%20accessed%20on%5Cs*%2Fi.test(value))%3B%0A%20%20%20%20%20%20%20%20const%20lastAccessed%20%3D%20accessLabel%3F.match(%2F%5ELast%20accessed%20on%5Cs*((%3F%3AMonday%7CTuesday%7CWednesday%7CThursday%7CFriday%7CSaturday%7CSunday)%2C%5Cs%2B%5BA-Za-z%5D%2B%5Cs%2B%5Cd%7B1%2C2%7D%2C%5Cs%2B%5Cd%7B4%7D)%24%2Fi)%3F.%5B1%5D%20%7C%7C%20null%3B%0A%20%20%20%20%20%20%20%20output.books.push(%7B...book%2Chighlights%2Cunavailable_highlights%3Aunavailable%2C%0A%20%20%20%20%20%20%20%20%20%20expected_highlights%3Aexpected%2Clast_accessed%3AlastAccessed%7D)%3B%0A%20%20%20%20%20%20%20%20if%20(expected%20!%3D%3D%20null%20%26%26%20highlights.length%20%2B%20unavailable%20!%3D%3D%20expected)%20%7B%0A%20%20%20%20%20%20%20%20%20%20output.errors.push(%7Btitle%3Abook.title%2Casin%3Abook.asin%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20error%3A%60Amazon%20reports%20%24%7Bexpected%7D%20highlights%3B%20captured%20%24%7Bhighlights.length%7D%20text%20and%20%24%7Bunavailable%7D%20unavailable%20entries%60%7D)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20await%20pause(300)%3B%0A%20%20%20%20%20%20%7D%20catch%20(error)%20%7B%0A%20%20%20%20%20%20%20%20output.errors.push(%7Btitle%3Abook.title%2Casin%3Abook.asin%2Cerror%3AString(error.message)%7D)%3B%0A%20%20%20%20%20%20%20%20if%20(cancelled)%20throw%20error%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%0A%20%20%20%20output.complete%20%3D%20output.errors.length%20%3D%3D%3D%200%3B%0A%20%20%7D%20catch%20(error)%20%7B%0A%20%20%20%20output.errors.push(%7Berror%3AString(error.message)%7D)%3B%0A%20%20%7D%0A%20%20const%20blob%20%3D%20new%20Blob(%5BJSON.stringify(output%2C%20null%2C%202)%20%2B%20%22%5Cn%22%5D%2C%20%7Btype%3A%22application%2Fjson%22%7D)%3B%0A%20%20const%20url%20%3D%20URL.createObjectURL(blob)%3B%0A%20%20const%20download%20%3D%20document.createElement(%22a%22)%3B%0A%20%20download.href%20%3D%20url%3B%0A%20%20download.download%20%3D%20%60kindle-notebooks-%24%7Bnew%20Date().toISOString().slice(0%2C10)%7D.json%60%3B%0A%20%20download.textContent%20%3D%20%22Download%20highlights%20JSON%22%3B%0A%20%20panel.append(download)%3B%0A%20%20download.click()%3B%0A%20%20status.textContent%20%3D%20%60%24%7Boutput.complete%20%3F%20%22Finished%22%20%3A%20%22Partial%20export%22%7D%3A%20%24%7Boutput.books.length%7D%20books%2C%20%60%20%2B%0A%20%20%20%20%60%24%7Boutput.books.reduce((sum%2C%20b)%20%3D%3E%20sum%20%2B%20b.highlights.length%2C%200)%7D%20text%20highlights%2C%20%60%20%2B%0A%20%20%20%20%60%24%7Boutput.errors.length%7D%20errors.%20The%20file%20includes%20any%20unavailable-content%20counts.%60%3B%0A%20%20stop.textContent%20%3D%20%22Close%22%3B%0A%20%20stop.onclick%20%3D%20()%20%3D%3E%20%7B%20URL.revokeObjectURL(url)%3B%20panel.remove()%3B%20%7D%3B%0A%7D)()%3B">📑 导出 Kindle 标注</a></li>
+<li>打开 <a href="https://read.amazon.com/notebook" target="_blank">read.amazon.com/notebook</a>，用你的美区 Amazon 账号登录</li>
+<li>点击书签栏上的「📑 导出 Kindle 标注」，保持标签页打开，等它逐本抓完（书多要几分钟），会自动下载 <code>kindle-notebooks-日期.json</code></li>
+<li>把下载的 JSON 发给我，我来转好直接推进你的云端书架；或者在书架页点「导入恢复」选这个文件，页面会自动识别 Kindle 格式</li>
+</ol>
+</div>
+<div class="card">
+<h2 style="margin-top:0">备选：复制代码</h2>
+<p>如果书签栏拖不出来，点 <button class="cp" id="copyBtn">复制导出代码</button>，然后在 notebook 页面按 <code>⌘⌥J</code>（Mac Chrome）打开控制台，粘贴回车，效果一样。</p>
+</div>
+<h2>说明</h2>
+<ul>
+<li>只能导出亚马逊云端已同步的标注；国区 Kindle 商店已关，国区账号没有云端数据</li>
+<li>部分图书因出版商导出限制，个别标注可能抓不到，工具会如实报告</li>
+<li>你写在标注旁边的个人备注这个工具导不出，只能导出标注原文</li>
+<li class="muted">导出脚本来自开源项目 dylanjcastillo/blog（MIT 风格的个人工具），仅在你的浏览器本地运行</li>
+</ul>
+</div>
+<script type="text/plain" id="src">/* Run as a bookmarklet on read.amazon.com/notebook. No third-party requests. */
+(async () => {
+  "use strict";
+  if (location.hostname !== "read.amazon.com" || location.pathname !== "/notebook") {
+    alert("Open https://read.amazon.com/notebook and sign in first.");
+    return;
+  }
+  if (document.getElementById("book-notes-export-progress")) return;
+  const panel = document.createElement("div");
+  panel.id = "book-notes-export-progress";
+  Object.assign(panel.style, {position:"fixed",right:"16px",top:"16px",zIndex:"2147483647",
+    background:"#fff",color:"#111",padding:"16px",border:"2px solid #222",maxWidth:"420px",
+    font:"15px/1.5 system-ui",boxShadow:"0 4px 24px #0003"});
+  const status = document.createElement("div");
+  const stop = document.createElement("button");
+  stop.textContent = "Stop and save progress";
+  panel.append(status, stop);
+  document.body.append(panel);
+  let cancelled = false;
+  stop.onclick = () => { cancelled = true; };
+  const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const wait = async (predicate, label) => {
+    for (let n = 0; n &lt; 150; n++) {
+      if (cancelled) throw new Error("Stopped by user");
+      if (predicate()) return;
+      await pause(100);
+    }
+    throw new Error(`Timed out: ${label}`);
+  };
+  const text = node => node?.textContent?.replace(/\s+/g, " ").trim() || "";
+  const lastCursor = (root, selector) => [...root.querySelectorAll(selector)].at(-1)?.value || "";
+  const output = {version:1,source:"https://read.amazon.com/notebook",
+    exported_at:new Date().toISOString(),complete:false,books:[],errors:[]};
+  try {
+    status.textContent = "Loading your annotated books. Keep this tab open while the export runs.";
+    const search = document.getElementById("kp-notebook-search-input");
+    if (search?.value) {
+      search.value = "";
+      search.dispatchEvent(new Event("input", {bubbles:true}));
+      search.dispatchEvent(new Event("keyup", {bubbles:true}));
+    }
+    const library = document.getElementById("library");
+    if (!library) throw new Error("Kindle library not found. Check that you are signed in.");
+    const list = library.querySelector(".a-scroller");
+    while (lastCursor(library, ".kp-notebook-library-next-page-start")) {
+      const before = library.querySelectorAll(".kp-notebook-library-each-book").length;
+      const cursor = lastCursor(library, ".kp-notebook-library-next-page-start");
+      if (!list) throw new Error("Library scrolling area not found");
+      list.scrollTop = list.scrollHeight;
+      list.dispatchEvent(new Event("scroll", {bubbles:true}));
+      await wait(() => library.querySelectorAll(".kp-notebook-library-each-book").length > before ||
+        lastCursor(library, ".kp-notebook-library-next-page-start") !== cursor, "loading more books");
+    }
+    const books = [...library.querySelectorAll(".kp-notebook-library-each-book")]
+      .map(node => ({asin:node.id,title:text(node.querySelector("h2")),
+        cover_url:node.querySelector("img.kp-notebook-cover-image")?.src || null,
+        author:text(node.querySelector("p")).replace(/^By:\s*/i, "")}));
+    output.expected_books = books.length;
+    if (!books.length) throw new Error("No annotated books found");
+    for (const [i, book] of books.entries()) {
+      if (cancelled) throw new Error("Stopped by user");
+      status.textContent = `Exporting ${i + 1} of ${books.length}: ${book.title}`;
+      try {
+        const node = document.getElementById(book.asin);
+        const link = node?.querySelector("a");
+        if (!link) throw new Error("Book link no longer available");
+        link.click();
+        await wait(() => document.getElementById("kp-notebook-annotations-asin")?.value === book.asin &amp;&amp;
+          document.getElementById("kp-notebook-annotations"), "opening book");
+        let annotations = document.getElementById("kp-notebook-annotations");
+        while (lastCursor(annotations, ".kp-notebook-annotations-next-page-start")) {
+          const cursor = lastCursor(annotations, ".kp-notebook-annotations-next-page-start");
+          const scroller = document.getElementById("annotation-scroller");
+          if (!scroller) throw new Error("Highlight scrolling area not found");
+          scroller.scrollTop = scroller.scrollHeight;
+          scroller.dispatchEvent(new Event("scroll", {bubbles:true}));
+          await wait(() => lastCursor(document.getElementById("kp-notebook-annotations"),
+            ".kp-notebook-annotations-next-page-start") !== cursor, "loading more highlights");
+          annotations = document.getElementById("kp-notebook-annotations");
+        }
+        const highlights = [];
+        let unavailable = 0;
+        for (const row of annotations.children) {
+          const header = row.querySelector('[id="annotationHighlightHeader"]');
+          if (!header) continue;
+          const value = text(row.querySelector('[id="highlight"]'));
+          if (value) highlights.push({text:value,reference:text(header)});
+          else unavailable++;
+        }
+        // Read only the count label. The container's textContent concatenates
+        // the access year with this count (e.g. 2024 + 32 becomes 202432).
+        const reported = text(document.getElementById("kp-notebook-annotation-count"))
+          .match(/^([\d,]+)\s+Highlights?\s*\|/i);
+        const expected = reported ? Number(reported[1].replaceAll(",", "")) : null;
+        // Capture the access date separately from highlight counts and passages.
+        const accessLabel = [...document.getElementById("annotation-scroller").querySelectorAll("span")]
+          .map(text).find(value => /^Last accessed on\s*/i.test(value));
+        const lastAccessed = accessLabel?.match(/^Last accessed on\s*((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})$/i)?.[1] || null;
+        output.books.push({...book,highlights,unavailable_highlights:unavailable,
+          expected_highlights:expected,last_accessed:lastAccessed});
+        if (expected !== null &amp;&amp; highlights.length + unavailable !== expected) {
+          output.errors.push({title:book.title,asin:book.asin,
+            error:`Amazon reports ${expected} highlights; captured ${highlights.length} text and ${unavailable} unavailable entries`});
+        }
+        await pause(300);
+      } catch (error) {
+        output.errors.push({title:book.title,asin:book.asin,error:String(error.message)});
+        if (cancelled) throw error;
+      }
+    }
+    output.complete = output.errors.length === 0;
+  } catch (error) {
+    output.errors.push({error:String(error.message)});
+  }
+  const blob = new Blob([JSON.stringify(output, null, 2) + "\n"], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const download = document.createElement("a");
+  download.href = url;
+  download.download = `kindle-notebooks-${new Date().toISOString().slice(0,10)}.json`;
+  download.textContent = "Download highlights JSON";
+  panel.append(download);
+  download.click();
+  status.textContent = `${output.complete ? "Finished" : "Partial export"}: ${output.books.length} books, ` +
+    `${output.books.reduce((sum, b) => sum + b.highlights.length, 0)} text highlights, ` +
+    `${output.errors.length} errors. The file includes any unavailable-content counts.`;
+  stop.textContent = "Close";
+  stop.onclick = () => { URL.revokeObjectURL(url); panel.remove(); };
+})();</script>
+<script>
+document.getElementById("copyBtn").addEventListener("click", async () => {
+  const t = document.getElementById("src").textContent;
+  try { await navigator.clipboard.writeText(t); alert("已复制，去 notebook 页面的控制台粘贴运行"); }
+  catch(e){ alert("复制失败，请换用拖书签的方式"); }
+});
+</script>
+</body></html>
