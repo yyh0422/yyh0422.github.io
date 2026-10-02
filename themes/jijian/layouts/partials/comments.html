@@ -1,0 +1,107 @@
+{{- /* Comments area start */ -}}
+{{- $isEncrypted := or .Params.mima .Params.password -}}
+{{ if .Site.Params.giscus.repo }}
+{{ if $isEncrypted }}<template id="hcl-comments-template">{{ end }}
+<div class="giscus-container">
+  <!-- Loading state -->
+  <div class="giscus-loading">
+    <div class="giscus-spinner"></div>
+    <p>{{ T "comments_loading" }}</p>
+  </div>
+
+  <!-- Error state -->
+  <div class="giscus-error" style="display: none;">
+    <p>{{ T "comments_error_title" }}</p>
+    <p style="font-size: 0.8em;">{{ T "comments_error_desc" }}</p>
+    <button class="giscus-retry" onclick="window.location.reload()">{{ T "comments_retry" }}</button>
+  </div>
+</div>
+
+<script>
+// Set up event listeners for giscus
+window.addEventListener('message', function(event) {
+  if (event.origin !== 'https://giscus.app') return;
+
+  const data = event.data;
+  if (data.giscus) {
+    // Hide loading indicator when comments are loaded
+    const loading = document.querySelector('.giscus-loading');
+    const container = document.querySelector('.giscus-container');
+    if (loading) loading.style.display = 'none';
+    if (container) container.style.display = 'none';
+  }
+});
+
+// Set timeout for error handling
+setTimeout(function() {
+  const loadingIndicator = document.querySelector('.giscus-loading');
+  if (loadingIndicator && loadingIndicator.style.display !== 'none') {
+    loadingIndicator.style.display = 'none';
+    const errorEl = document.querySelector('.giscus-error');
+    if (errorEl) errorEl.style.display = 'block';
+  }
+}, 10000); // 10 seconds timeout
+
+// Dynamic theme switching
+function getGiscusTheme() {
+  const html = document.documentElement;
+  const theme = html.dataset.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  return theme === 'dark' ? 'dark' : 'light';
+}
+
+function sendThemeToGiscus(theme) {
+  const iframe = document.querySelector('iframe.giscus-frame');
+  if (iframe) {
+    iframe.contentWindow.postMessage({ giscus: { setConfig: { theme: theme } } }, 'https://giscus.app');
+  }
+}
+
+// Watch for theme changes
+const htmlObserver = new MutationObserver(function(mutations) {
+  mutations.forEach(function(mutation) {
+    if (mutation.attributeName === 'data-theme') {
+      sendThemeToGiscus(getGiscusTheme());
+    }
+  });
+});
+htmlObserver.observe(document.documentElement, { attributes: true });
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+  if (!document.documentElement.dataset.theme) {
+    sendThemeToGiscus(getGiscusTheme());
+  }
+});
+</script>
+
+<style>
+.giscus-container { margin-top: 2rem; padding: 1rem; border-radius: 8px; background-color: var(--card-bg-color, #f9f9f9); border: 1px solid var(--border-color, #eaeaea); }
+.giscus-loading, .giscus-error { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: var(--text-color, #333); }
+.giscus-spinner { width: 40px; height: 40px; border: 4px solid var(--border-color, #eaeaea); border-top-color: var(--accent-color, #007bff); border-radius: 50%; animation: giscus-spin 1s linear infinite; margin-bottom: 1rem; }
+@keyframes giscus-spin { to { transform: rotate(360deg); } }
+.giscus-retry { margin-top: 1rem; padding: 0.5rem 1rem; border: none; border-radius: 4px; background-color: var(--accent-color, #007bff); color: white; cursor: pointer; font-size: 1rem; }
+</style>
+{{- $giscusTerm := .Title }}
+{{- with .Site.Params.giscus.termSuffix }}
+  {{- $giscusTerm = printf "%s-%s" $.Title . }}
+{{- end }}
+<script src="https://giscus.app/client.js"
+        data-repo="{{ .Site.Params.giscus.repo }}"
+        data-repo-id="{{ .Site.Params.giscus.repoId }}"
+        data-category="{{ .Site.Params.giscus.category }}"
+        data-category-id="{{ .Site.Params.giscus.categoryId }}"
+        data-mapping="{{ .Site.Params.giscus.mapping | default "specific" }}"
+        data-term="{{ .Site.Params.giscus.term | default $giscusTerm }}"
+        data-strict="{{ .Site.Params.giscus.strict | default "0" }}"
+        data-reactions-enabled="{{ .Site.Params.giscus.reactionsEnabled | default "1" }}"
+        data-emit-metadata="{{ .Site.Params.giscus.emitMetadata | default "0" }}"
+        data-input-position="{{ .Site.Params.giscus.inputPosition | default "top" }}"
+        data-theme="{{ .Site.Params.giscus.theme | default "preferred_color_scheme" }}"
+        data-lang="{{ .Site.Params.giscus.lang | default .Site.Language.Lang }}"
+        data-loading="{{ .Site.Params.giscus.loading | default "lazy" }}"
+        crossorigin="anonymous"
+        async>
+</script>
+{{ if $isEncrypted }}</template>{{ end }}
+{{ end }}
+{{- /* Comments area end */ -}}
+{{- /* Comments area end */ -}}

@@ -1,0 +1,59 @@
+{{- /* Head custom content area start */ -}}
+{{- /* Insert any custom code (web-analytics, resources, etc.) - it will appear in the
+
+<head></head> section of every page. */ -}}
+{{- /* Can be overwritten by partial with the same name in the global layouts. */ -}}
+
+{{- if not hugo.IsServer }}
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+{{- end }}
+
+<style>
+    /* 鼠标悬停封面图预览 */
+    .cover-preview {
+        position: fixed;
+        pointer-events: none;
+        z-index: 9999;
+        width: 200px;
+        height: 267px;
+        border-radius: 12px;
+        overflow: hidden;
+        opacity: 0;
+        transform: scale(0.85) translateY(8px);
+        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25),
+            0 4px 12px rgba(0, 0, 0, 0.15);
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(4px);
+    }
+
+    .cover-preview.visible {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+
+    .cover-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* 暗色模式下调整边框和阴影 */
+    :root[data-theme="dark"] .cover-preview {
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5),
+            0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    /* 手机端不显示预览图 */
+    @media (max-width: 768px) {
+        .cover-preview {
+            display: none !important;
+        }
+    }
+
+</style>
+
+{{- /* Head custom content area end */ -}}

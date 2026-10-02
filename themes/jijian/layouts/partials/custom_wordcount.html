@@ -1,0 +1,5 @@
+{{- /* 自定义中文字数统计函数 */ -}}
+{{- $content := .Content -}}
+{{- $content = $content | plainify -}}
+{{- $length := len $content -}}
+{{- return $length -}}
