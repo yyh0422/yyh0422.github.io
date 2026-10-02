@@ -34,3 +34,7 @@ menu:
       name: 关于
       url: /about/
       weight: 40
+    - identifier: radio
+      name: 收音机
+      url: /radio/
+      weight: 50
