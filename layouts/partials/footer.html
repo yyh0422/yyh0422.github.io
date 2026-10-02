@@ -1,7 +1,291 @@
+{{- if not (.Param "hideFooter") }}
 <footer class="footer">
-    {{- if site.Copyright }}
-    <span>{{ site.Copyright | markdownify }}</span>
-    {{- else }}
-    <span>&copy; {{ now.Year }} <a href="{{ "" | absLangURL }}">{{ site.Title }}</a></span>
+    {{- if site.Params.footer.badges }}
+    <div class="footer-badges">
+        {{- range site.Params.footer.badges }}
+        <a href="{{ .url | default "javascript:void(0)" }}" target="_blank" rel="noopener" title="{{ .title }}">
+            <img src="{{ .badge | relURL }}" alt="{{ .title }}">
+        </a>
+        {{- end }}
+    </div>
     {{- end }}
+    {{- if not site.Params.footer.hideCopyright }}
+    {{- if site.Copyright }}
+    <span>&copy; {{ now.Year }} <a href="{{ "" | relLangURL }}">{{ site.Copyright }}</a></span>
+    {{- else }}
+    <span>&copy; {{ now.Year }} <a href="{{ "" | relLangURL }}">{{ site.Title }}</a></span>
+    {{- end }}
+    {{- print " · "}}
+    {{- end }}
+
+    {{- with site.Params.footer.text }}
+    {{ . | markdownify }}
+    {{- print " · "}}
+    {{- end }}
+
 </footer>
+{{- end }}
+
+{{- if (not site.Params.disableScrollToTop) }}
+<a href="#top" aria-label="go to top" title="Go to Top" class="top-link" id="top-link">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+{{- end }}
+
+{{- if (not site.Params.disableThemeToggle) }}
+<button id="theme-toggle-fixed" accesskey="t" title="(Alt + T)" aria-label="Toggle theme" class="theme-toggle-fixed">
+    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+</button>
+{{- end }}
+
+{{- partial "extend_footer.html" . }}
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        // Set the scroll position
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    // 页脚徽标横向滚动提示 (移动端，每4小时仅限一次且在可见时触发)
+    window.addEventListener('load', () => {
+        const badges = document.querySelector('.footer-badges');
+        if (badges && window.innerWidth <= 768) {
+            // 1. 检查距离上次触发是否已超过 4 小时 (4 * 60 * 60 * 1000 ms)
+            const now = Date.now();
+            const fourHours = 4 * 60 * 60 * 1000;
+            const lastTime = localStorage.getItem('badge-hint-last-time');
+            
+            if (lastTime && (now - parseInt(lastTime, 10)) < fourHours) return;
+
+            const slowScroll = (target, duration) => {
+                const start = badges.scrollLeft;
+                const startTime = performance.now();
+                const animate = (currentTime) => {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+                    badges.scrollLeft = start + (target - start) * ease;
+                    if (progress < 1) requestAnimationFrame(animate);
+                };
+                requestAnimationFrame(animate);
+            };
+
+            // 2. 使用相交观察器，确保只有在用户“真正看到”徽标时才开始动画
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // 如果徽标确实发生了溢出，才执行动画
+                        if (badges.scrollWidth > badges.clientWidth) {
+                            setTimeout(() => {
+                                slowScroll(40, 800);
+                                setTimeout(() => slowScroll(0, 800), 1400);
+                            }, 400);
+                            
+                            // 3. 标记触发时间戳
+                            localStorage.setItem('badge-hint-last-time', Date.now().toString());
+                            observer.unobserve(badges);
+                        }
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            observer.observe(badges);
+        }
+    });
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+
+{{- if or (not site.Params.disableScrollToTop) (not site.Params.disableThemeToggle) }}
+<script>
+    var mybutton = document.getElementById("top-link");
+    var toggleButton = document.getElementById("theme-toggle-fixed");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            if (mybutton) {
+                mybutton.style.visibility = "visible";
+                mybutton.style.opacity = "1";
+            }
+            if (toggleButton) {
+                toggleButton.style.visibility = "visible";
+                toggleButton.style.opacity = "1";
+            }
+        } else {
+            if (mybutton) {
+                mybutton.style.visibility = "hidden";
+                mybutton.style.opacity = "0";
+            }
+            if (toggleButton) {
+                toggleButton.style.visibility = "hidden";
+                toggleButton.style.opacity = "0";
+            }
+        }
+    };
+
+</script>
+{{- end }}
+
+{{- if (not site.Params.disableThemeToggle) }}
+<script>
+    const toggleTheme = () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    };
+
+    const headerToggle = document.getElementById("theme-toggle");
+    const footerToggle = document.getElementById("theme-toggle-fixed");
+
+    if (headerToggle) {
+        headerToggle.addEventListener("click", toggleTheme);
+    }
+    if (footerToggle) {
+        footerToggle.addEventListener("click", toggleTheme);
+    }
+
+    // 动态修改快捷键提示文本，根据用户操作系统
+    document.addEventListener('DOMContentLoaded', () => {
+        const themeToggles = [document.getElementById("theme-toggle"), document.getElementById("theme-toggle-fixed")];
+        const isMac = navigator.platform.toUpperCase().includes('MAC');
+
+        themeToggles.forEach(toggle => {
+            if (toggle) {
+                if (isMac) {
+                    toggle.setAttribute('title', '(Ctrl + Opt + T)');
+                } else {
+                    toggle.setAttribute('title', '(Alt + T)');
+                }
+            }
+        });
+    })
+</script>
+{{- end }}
+
+{{- $showCopyButtons := true }}
+{{- if isset site.Params "code" }}
+  {{- $showCopyButtons = site.Params.code.showCopyButtons | default true }}
+{{- end }}
+{{- if isset .Params "code" }}
+  {{- $showCopyButtons = .Params.code.showCopyButtons | default true }}
+{{- end }}
+{{- if (and (eq .Kind "page") (ne .Layout "archives") (ne .Layout "search") $showCopyButtons) }}
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '{{- i18n "code_copy" | default "copy" }}';
+
+        function copyingDone() {
+            copybutton.innerHTML = '{{- i18n "code_copied" | default "copied!" }}';
+            setTimeout(() => {
+                copybutton.innerHTML = '{{- i18n "code_copy" | default "copy" }}';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            // td containing LineNos
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            // table containing LineNos and code
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            // code blocks not having highlight as parent class
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+{{- end }}
+
+{{- if eq .Kind "page" }}
+{{- $mediumZoom := resources.Get "js/medium-zoom.min.js" | resources.Fingerprint }}
+<script src="{{ $mediumZoom.RelPermalink }}" integrity="{{ $mediumZoom.Data.Integrity }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const images = Array.from(document.querySelectorAll(".post-content img, .post-single img"));
+        // 过滤掉已经在 <a> 标签内部的图片（比如 figure 设置了 link 属性的情况）
+        // 同时也过滤掉行内小图片 (.in-text) 以及显式标记为不可缩放的图片 (data-zoomable="false")
+        const zoomableImages = images.filter(img =>
+            !img.closest('a') &&
+            !img.closest('.media-shortcode') &&
+            !img.classList.contains('in-text') &&
+            img.dataset.zoomable !== 'false'
+        );
+        
+        mediumZoom(zoomableImages, {
+            margin: 24,
+            background: 'rgba(0, 0, 0, 0.8)',
+            scrollOffset: 0,
+        });
+    });
+</script>
+{{- end }}
