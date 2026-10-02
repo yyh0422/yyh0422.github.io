@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="网络收音机 - 免费在线收听全球电台">
+<title>网络收音机</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.18/dist/hls.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115; --surface: #171a21; --surface2: #1f2330;
+    --text: #e8eaf0; --muted: #9aa0b4; --accent: #5b9dff;
+    --accent-dim: rgba(91,157,255,.14); --border: #262b38; --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    padding-bottom: 92px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10; background: rgba(15,17,21,.92);
+    backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+    padding: 14px 16px 10px;
+  }
+  header h1 { margin: 0 0 10px; font-size: 20px; display: flex; align-items: center; gap: 8px; }
+  header h1 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .search-row { display: flex; gap: 8px; }
+  .search-row input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 10px 12px; font-size: 15px; outline: none;
+  }
+  .search-row input:focus { border-color: var(--accent); }
+  .tabs { display: flex; gap: 8px; margin-top: 10px; }
+  .tab {
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    border-radius: 999px; padding: 6px 16px; font-size: 14px; cursor: pointer;
+  }
+  .tab.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px 4px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0; border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    border-radius: 999px; padding: 7px 16px; font-size: 14px; cursor: pointer;
+  }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  main { padding: 8px 12px; max-width: 760px; margin: 0 auto; }
+  .station {
+    display: flex; align-items: center; gap: 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin: 8px 0;
+  }
+  .station.playing { border-color: var(--accent); background: var(--surface2); }
+  .play-btn {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: none;
+    background: var(--accent-dim); color: var(--accent); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .station.playing .play-btn { background: var(--accent); color: #fff; }
+  .station-info { flex: 1; min-width: 0; }
+  .station-info strong { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .station-info small { color: var(--muted); font-size: 12px; }
+  .fav-btn {
+    background: none; border: none; cursor: pointer; color: var(--muted); padding: 8px; flex-shrink: 0;
+  }
+  .fav-btn.is-fav { color: var(--danger); }
+  .fav-btn.is-fav svg { fill: currentColor; }
+  .status { text-align: center; color: var(--muted); padding: 32px 16px; font-size: 14px; }
+  .status.error { color: var(--danger); }
+  .spinner {
+    width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; margin: 0 auto 12px; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #player {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: rgba(23,26,33,.96); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border); padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    display: flex; align-items: center; gap: 12px;
+  }
+  #player.hidden { display: none; }
+  #player .p-info { flex: 1; min-width: 0; }
+  #player .p-info strong { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #player .p-info small { color: var(--muted); font-size: 12px; }
+  #player input[type=range] { width: 90px; accent-color: var(--accent); }
+  #toast {
+    position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 18px; border-radius: 10px; font-size: 14px; opacity: 0; pointer-events: none;
+    transition: all .25s; z-index: 30; max-width: 86vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="dot"></span>网络收音机</h1>
+  <div class="search-row">
+    <input id="search" type="search" placeholder="搜索电台名称…" autocomplete="off">
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="discover">发现</button>
+    <button class="tab" data-tab="favorites">我的收藏 <span id="fav-count"></span></button>
+  </div>
+</header>
+
+<div class="chips" id="chips"></div>
+<main id="list"></main>
+
+<div id="player" class="hidden">
+  <button class="play-btn" id="p-toggle" aria-label="播放/暂停"></button>
+  <div class="p-info"><strong id="p-name">—</strong><small id="p-meta">—</small></div>
+  <input type="range" id="p-vol" min="0" max="1" step="0.05" value="0.9" aria-label="音量">
+</div>
+<div id="toast"></div>
+<audio id="audio" preload="none"></audio>
+
+<script>
+"use strict";
+const API_HOSTS = ["de1.api.radio-browser.info", "de2.api.radio-browser.info", "nl1.api.radio-browser.info"];
+const GENRES = [
+  { label: "热门", tag: "" }, { label: "新闻", tag: "news" }, { label: "音乐", tag: "music" },
+  { label: "流行", tag: "pop" }, { label: "古典", tag: "classical" }, { label: "谈话", tag: "talk" },
+];
+const FAV_KEY = "radio-favorites-v1";
+
+const $ = (id) => document.getElementById(id);
+const listEl = $("list"), audio = $("audio"), toastEl = $("toast");
+const state = { tab: "discover", tag: "", query: "", stations: [], current: null, playing: false, hls: null };
+let toastTimer = null;
+
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2600);
+}
+function getFavorites() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || "[]"); } catch { return []; }
+}
+function saveFavorites(favs) {
+  localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+  renderFavCount();
+}
+function isFav(uuid) { return getFavorites().some((f) => f.stationuuid === uuid); }
+function toggleFav(st) {
+  const favs = getFavorites();
+  const i = favs.findIndex((f) => f.stationuuid === st.stationuuid);
+  if (i >= 0) { favs.splice(i, 1); toast("已取消收藏"); }
+  else {
+    favs.unshift({ stationuuid: st.stationuuid, name: st.name, url: st.url, country: st.country, codec: st.codec, bitrate: st.bitrate });
+    toast("已加入收藏");
+  }
+  saveFavorites(favs);
+  render();
+}
+function renderFavCount() {
+  const n = getFavorites().length;
+  $("fav-count").textContent = n ? `(${n})` : "";
+}
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function metaLine(st) {
+  return [st.country, st.codec, st.bitrate > 0 ? st.bitrate + " kbps" : ""].filter(Boolean).join(" · ") || "网络电台";
+}
+function iconPlay() {
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 11 7-11 7V5Z"/></svg>';
+}
+function iconPause() {
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 5v14M15 5v14" stroke="currentColor" stroke-width="3"/></svg>';
+}
+function iconHeart() {
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>';
+}
+
+async function api(path) {
+  let lastErr = null;
+  for (const host of API_HOSTS) {
+    try {
+      const r = await fetch(`https://${host}${path}`, { signal: AbortSignal.timeout(12000) });
+      if (!r.ok) throw new Error("http " + r.status);
+      return await r.json();
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error("network");
+}
+function normalize(raw) {
+  return {
+    stationuuid: raw.stationuuid, name: raw.name || "未知电台",
+    url: raw.url_resolved || raw.url || "",
+    country: raw.country || "", codec: (raw.codec || "").toUpperCase(),
+    bitrate: raw.bitrate || 0, votes: raw.votes || 0,
+  };
+}
+async function loadStations() {
+  listEl.innerHTML = '<div class="status"><div class="spinner"></div>正在加载电台…</div>';
+  const params = new URLSearchParams({ hidebroken: "true", order: "votes", reverse: "true", limit: "40" });
+  if (state.query) params.set("name", state.query);
+  else { params.set("countrycode", "CN"); if (state.tag) params.set("tag", state.tag); }
+  try {
+    const raw = await api(`/json/stations/search?${params}`);
+    state.stations = raw.map(normalize).filter((s) => s.url);
+    render();
+  } catch {
+    listEl.innerHTML = '<div class="status error">电台目录暂时没有响应，请稍后重试。<br><button class="chip" style="margin-top:12px" onclick="loadStations()">重新加载</button></div>';
+  }
+}
+function streamUrl(u) {
+  // 页面是 https 时，把 http 流升级成 https，避免被浏览器拦截
+  if (location.protocol === "https:" && u.startsWith("http://")) return "https:" + u.slice(5);
+  return u;
+}
+function playStation(st) {
+  stopHls();
+  state.current = st;
+  const url = streamUrl(st.url);
+  if (/\.m3u8($|\?)/i.test(url) && window.Hls && Hls.isSupported()) {
+    const hls = new Hls({ maxBufferLength: 30 });
+    state.hls = hls;
+    hls.loadSource(url);
+    hls.attachMedia(audio);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => audio.play().catch(() => {}));
+    hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) onPlayError(); });
+  } else {
+    audio.src = url;
+    audio.play().catch(() => {});
+  }
+  setPlaying(true);
+  updatePlayer();
+}
+function stopHls() {
+  if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; }
+}
+function onPlayError() {
+  setPlaying(false);
+  toast("这个电台播放失败，换一个试试");
+  render();
+}
+function setPlaying(p) {
+  state.playing = p;
+  $("p-toggle").innerHTML = p ? iconPause() : iconPlay();
+}
+function updatePlayer() {
+  const st = state.current;
+  if (!st) { $("player").classList.add("hidden"); return; }
+  $("player").classList.remove("hidden");
+  $("p-name").textContent = st.name;
+  $("p-meta").textContent = metaLine(st);
+}
+function togglePlay() {
+  if (!state.current) return;
+  if (state.playing) { audio.pause(); stopHls(); setPlaying(false); }
+  else {
+    if (audio.src) audio.play().catch(() => {});
+    else playStation(state.current);
+    setPlaying(true);
+  }
+  render();
+}
+function onRowClick(st) {
+  if (state.current && state.current.stationuuid === st.stationuuid) togglePlay();
+  else playStation(st);
+  render();
+}
+function render() {
+  const items = state.tab === "favorites" ? getFavorites() : state.stations;
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === state.tab));
+  $("chips").style.display = state.tab === "favorites" ? "none" : "";
+  if (!items.length) {
+    listEl.innerHTML = `<div class="status">${state.tab === "favorites" ? "还没有收藏，点击电台旁的 ♡ 收藏喜欢的电台" : "没有找到电台"}</div>`;
+    return;
+  }
+  listEl.innerHTML = items.map((st) => {
+    const active = state.current && state.current.stationuuid === st.stationuuid;
+    const fav = isFav(st.stationuuid);
+    return `<article class="station${active && state.playing ? " playing" : ""}" data-uuid="${esc(st.stationuuid)}">
+      <button class="play-btn" data-act="play" aria-label="播放">${active && state.playing ? iconPause() : iconPlay()}</button>
+      <div class="station-info" data-act="play"><strong>${esc(st.name)}</strong><small>${esc(metaLine(st))}</small></div>
+      <button class="fav-btn${fav ? " is-fav" : ""}" data-act="fav" aria-label="收藏">${iconHeart()}</button>
+    </article>`;
+  }).join("");
+}
+function findStation(uuid) {
+  const pool = state.tab === "favorites" ? getFavorites() : state.stations;
+  return pool.find((s) => s.stationuuid === uuid);
+}
+
+// 事件
+listEl.addEventListener("click", (e) => {
+  const art = e.target.closest(".station");
+  if (!art) return;
+  const st = findStation(art.dataset.uuid);
+  if (!st) return;
+  const act = e.target.closest("[data-act]")?.dataset.act;
+  if (act === "fav") toggleFav(st);
+  else onRowClick(st);
+});
+$("chips").innerHTML = GENRES.map((g, i) =>
+  `<button class="chip${i === 0 ? " active" : ""}" data-tag="${g.tag}">${g.label}</button>`).join("");
+$("chips").addEventListener("click", (e) => {
+  const c = e.target.closest(".chip");
+  if (!c) return;
+  document.querySelectorAll(".chip").forEach((x) => x.classList.remove("active"));
+  c.classList.add("active");
+  state.tag = c.dataset.tag; state.query = ""; $("search").value = "";
+  loadStations();
+});
+document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+  state.tab = t.dataset.tab;
+  render();
+  if (state.tab === "discover" && !state.stations.length) loadStations();
+}));
+let searchTimer = null;
+$("search").addEventListener("input", (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.query = e.target.value.trim(); state.tab = "discover";
+    loadStations();
+  }, 500);
+});
+$("p-toggle").addEventListener("click", togglePlay);
+$("p-vol").addEventListener("input", (e) => { audio.volume = parseFloat(e.target.value); });
+audio.volume = 0.9;
+audio.addEventListener("error", () => { if (state.current) onPlayError(); });
+audio.addEventListener("play", () => setPlaying(true));
+audio.addEventListener("pause", () => { if (!state.hls) setPlaying(false); });
+document.addEventListener("visibilitychange", () => { /* 后台继续播放 */ });
+
+renderFavCount();
+render();
+loadStations();
+</script>
+</body>
+</html>
