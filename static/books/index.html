@@ -50,7 +50,6 @@ h1{font-size:22px;margin:0;display:flex;align-items:center;gap:8px;}
 .linkbtn.danger{color:var(--red);}
 .backbtn{background:none;border:none;color:var(--accent);font-size:15px;cursor:pointer;padding:8px 0;font-weight:600;}
 .empty{text-align:center;color:var(--muted);padding:60px 20px;font-size:15px;}
-/* modal */
 .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;
   display:flex;align-items:flex-end;justify-content:center;}
 @media(min-width:600px){.modal-mask{align-items:center;}}
@@ -65,6 +64,7 @@ h1{font-size:22px;margin:0;display:flex;align-items:center;gap:8px;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
 .field textarea{min-height:90px;resize:vertical;}
 .field textarea.tall{min-height:140px;}
+.field .help{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.7;}
 .starpick{display:flex;gap:6px;font-size:28px;}
 .starpick span{cursor:pointer;color:#ddd;}
 .starpick span.on{color:#d99a2b;}
@@ -78,12 +78,13 @@ footer.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;
 <body>
 <header class="top"><div class="inner">
   <h1>📚 我的书架</h1>
-  <div class="stats" id="stats"></div>
+  <div class="stats"><span id="statsText"></span> · <span id="syncDot"></span></div>
   <div class="searchrow">
     <input id="q" type="search" placeholder="搜索书名 / 作者 / 摘抄 / 笔记…" autocomplete="off">
   </div>
   <div class="btnrow" id="topbtns">
     <button class="btn small" id="addBookBtn">＋ 添加图书</button>
+    <button class="btn small ghost" id="syncBtn">☁️ 同步设置</button>
     <button class="btn small ghost" id="exportBtn">备份导出</button>
     <button class="btn small ghost" id="importBtn">导入恢复</button>
     <input type="file" id="importFile" class="hiddenfile" accept=".json,application/json">
@@ -93,7 +94,7 @@ footer.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;
 <div class="wrap">
   <div id="shelfView"></div>
   <div id="bookView" style="display:none"></div>
-  <footer class="hint">数据保存在本机浏览器里，换手机或清缓存会丢，请定期点「备份导出」把 JSON 存好。</footer>
+  <footer class="hint">配置云端同步后，数据自动存到你的 GitHub 私有仓库；没配之前先存在本机浏览器，记得用「备份导出」。</footer>
 </div>
 
 <div id="modalRoot"></div>
@@ -101,26 +102,167 @@ footer.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;
 <script>
 "use strict";
 const KEY = "bookshelf.v1";
+const CFG_KEY = "bookshelf.cfg";
 let db = load() || { books: [] };
+let cfg = loadCfg();
 let currentBookId = null;
 
 function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } }
-function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+function save(){
+  localStorage.setItem(KEY, JSON.stringify(db));
+  schedulePush();
+}
+function loadCfg(){ try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch(e){ return {}; } }
+function saveCfg(){ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const STATUS = { reading:"在读", done:"已读完", dropped:"弃读" };
 
+/* ---------- 云端同步 (GitHub 私有仓库) ---------- */
+let remoteSha = null;
+let syncState = "off";
+const ghConfigured = () => !!(cfg.token && cfg.repo);
+function ghPath(){ return (cfg.path || "bookshelf.json").replace(/^\/+/,""); }
+function ghOwner(){ return cfg.owner || "yyh0422"; }
+
+function setSyncStatus(s, msg){
+  syncState = s;
+  const el = document.getElementById("syncDot");
+  const map = {
+    off:     ["⚪","未配置云端同步"],
+    syncing: ["🔄","同步中…"],
+    ok:      ["🟢","已同步到云端"],
+    error:   ["🔴", msg || "同步失败，点☁️检查设置"]
+  };
+  const m = map[s] || map.off;
+  if(el) el.textContent = m[0] + " " + m[1];
+}
+function b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64decode(b64){ return decodeURIComponent(escape(atob(String(b64).replace(/\s/g,"")))); }
+
+async function ghApi(method, body){
+  const url = `https://api.github.com/repos/${ghOwner()}/${cfg.repo}/contents/${ghPath()}`;
+  const r = await fetch(url, {
+    method: method || "GET",
+    headers: { "Authorization": "Bearer " + cfg.token, "Accept": "application/vnd.github+json" },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(r.status === 404) return { notFound: true };
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+async function pullRemote(){
+  if(!ghConfigured()){ setSyncStatus("off"); return false; }
+  setSyncStatus("syncing");
+  try{
+    const d = await ghApi("GET");
+    if(d.notFound){ remoteSha = null; setSyncStatus("ok","云端暂无数据"); return true; }
+    remoteSha = d.sha;
+    const data = JSON.parse(b64decode(d.content));
+    if(data && Array.isArray(data.books)){
+      db = data;
+      localStorage.setItem(KEY, JSON.stringify(db));
+      renderStats(); renderAll();
+    }
+    setSyncStatus("ok"); return true;
+  }catch(e){ setSyncStatus("error"); return false; }
+}
+let pushTimer = null;
+function schedulePush(){
+  if(!ghConfigured()) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushNow, 2500);
+}
+async function pushNow(){
+  if(!ghConfigured() || syncState === "syncing") return;
+  setSyncStatus("syncing");
+  const tryPut = async () => {
+    try{ const d = await ghApi("GET"); remoteSha = d.notFound ? null : d.sha; }catch(e){}
+    const body = {
+      message: "书架自动同步 " + new Date().toLocaleString("zh-CN"),
+      content: b64encode(JSON.stringify(db))
+    };
+    if(remoteSha) body.sha = remoteSha;
+    const r = await ghApi("PUT", body);
+    if(r.content && r.content.sha) remoteSha = r.content.sha;
+  };
+  try { await tryPut(); setSyncStatus("ok"); }
+  catch(e){
+    try { await tryPut(); setSyncStatus("ok"); }  // sha 冲突时重拉再试一次
+    catch(e2){ setSyncStatus("error"); }
+  }
+}
+function renderAll(){ if(currentBookId) renderBook(); else renderShelf(); }
+
+function syncSettingsForm(){
+  openModal(`
+    <h2>☁️ 云端同步设置</h2>
+    <div class="field"><label>GitHub 用户名</label>
+      <input id="s_owner" value="${esc(cfg.owner || "yyh0422")}">
+      <div class="help">Token 只保存在本机浏览器里，不会写进网页，别人打开这个页面看不到你的数据。</div></div>
+    <div class="field"><label>私有仓库名</label>
+      <input id="s_repo" value="${esc(cfg.repo || "")}" placeholder="如：my-notes">
+      <div class="help">1. 在 GitHub 新建一个 <b>Private</b> 仓库（手机上也能建）<br>
+      2. 头像 → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token<br>
+      3. Repository access 选 Only select repositories，勾上这个仓库；Permissions 里 Contents 设为 Read and write<br>
+      4. 生成后复制 token（只显示一次），粘贴到下面</div></div>
+    <div class="field"><label>数据文件名</label>
+      <input id="s_path" value="${esc(cfg.path || "bookshelf.json")}"></div>
+    <div class="field"><label>Token</label>
+      <input id="s_token" type="password" value="${esc(cfg.token || "")}" placeholder="粘贴 token"></div>
+    <div class="btnrow" style="justify-content:flex-start">
+      <button class="btn small ghost" id="s_pull">从云端拉取</button>
+      <button class="btn small ghost" id="s_push">推送到云端</button>
+      ${ghConfigured()?'<button class="linkbtn danger" id="s_clear">断开同步</button>':""}
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" id="mCancel">取消</button>
+      <button class="btn" id="mSave">保存</button>
+    </div>`);
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mSave").onclick = async () => {
+    cfg = {
+      owner: document.getElementById("s_owner").value.trim() || "yyh0422",
+      repo: document.getElementById("s_repo").value.trim(),
+      path: document.getElementById("s_path").value.trim() || "bookshelf.json",
+      token: document.getElementById("s_token").value.trim()
+    };
+    saveCfg(); closeModal();
+    if(ghConfigured()){ await pullRemote(); schedulePush(); }
+    else setSyncStatus("off");
+  };
+  document.getElementById("s_pull").onclick = async () => {
+    cfg.token = document.getElementById("s_token").value.trim();
+    cfg.repo = document.getElementById("s_repo").value.trim();
+    cfg.owner = document.getElementById("s_owner").value.trim() || "yyh0422";
+    cfg.path = document.getElementById("s_path").value.trim() || "bookshelf.json";
+    const ok = await pullRemote();
+    alert(ok ? "已从云端拉取最新数据" : "拉取失败，请检查仓库名和 token");
+  };
+  document.getElementById("s_push").onclick = async () => {
+    cfg.token = document.getElementById("s_token").value.trim();
+    cfg.repo = document.getElementById("s_repo").value.trim();
+    cfg.owner = document.getElementById("s_owner").value.trim() || "yyh0422";
+    cfg.path = document.getElementById("s_path").value.trim() || "bookshelf.json";
+    saveCfg(); await pushNow();
+    alert(syncState === "ok" ? "已推送到云端" : "推送失败，请检查仓库名和 token");
+  };
+  const clr = document.getElementById("s_clear");
+  if(clr) clr.onclick = () => {
+    if(confirm("断开云端同步？本机数据会保留。")){ cfg = {}; saveCfg(); setSyncStatus("off"); closeModal(); }
+  };
+}
+
+/* ---------- 统计 / 书架 / 详情（同前） ---------- */
 function counts(){
   let e = 0; db.books.forEach(b => e += (b.excerpts||[]).length);
   return { books: db.books.length, excerpts: e };
 }
 function renderStats(){
   const c = counts();
-  document.getElementById("stats").textContent = `共 ${c.books} 本书 · ${c.excerpts} 条摘抄`;
+  document.getElementById("statsText").textContent = `共 ${c.books} 本书 · ${c.excerpts} 条摘抄`;
 }
 function stars(n){ n = n||0; return "★".repeat(n) + "☆".repeat(5-n); }
-
-/* ---------- 书架视图 ---------- */
 function bookMatches(b, q){
   if(!q) return true;
   q = q.toLowerCase();
@@ -135,7 +277,7 @@ function renderShelf(){
   const q = document.getElementById("q").value.trim();
   const books = db.books.filter(b => bookMatches(b, q));
   if(!books.length){
-    v.innerHTML = `<div class="empty">${q ? "没有找到匹配的内容" : "书架还是空的，<br>点右上角「＋ 添加图书」开始记录第一本书吧"}</div>`;
+    v.innerHTML = `<div class="empty">${q ? "没有找到匹配的内容" : "书架还是空的，<br>点「＋ 添加图书」开始记录第一本书吧"}</div>`;
     return;
   }
   v.innerHTML = books.map(b => `
@@ -151,12 +293,7 @@ function renderShelf(){
   v.querySelectorAll(".book-card").forEach(el =>
     el.addEventListener("click", () => openBook(el.dataset.id)));
 }
-
-/* ---------- 图书详情视图 ---------- */
-function openBook(id){
-  currentBookId = id;
-  renderBook();
-}
+function openBook(id){ currentBookId = id; renderBook(); }
 function renderBook(){
   const b = db.books.find(x => x.id === currentBookId);
   if(!b){ renderShelf(); return; }
@@ -270,8 +407,7 @@ function bookForm(b){
     if(isNew){
       db.books.unshift(Object.assign({ id: uid(), excerpts: [], createdAt: Date.now() }, data));
     } else Object.assign(b, data);
-    save(); closeModal(); renderStats();
-    if(currentBookId) renderBook(); else renderShelf();
+    save(); closeModal(); renderStats(); renderAll();
   };
 }
 function excerptForm(b, x){
@@ -329,8 +465,7 @@ function doImport(file){
           db.books.push(b); have.add(b.id); n++;
         }
       });
-      save(); renderStats();
-      if(currentBookId) renderBook(); else renderShelf();
+      save(); renderStats(); renderAll();
       alert(`导入完成，新增 ${n} 本书`);
     }catch(e){ alert("文件格式不对，请选择之前导出的备份 JSON"); }
   };
@@ -339,18 +474,25 @@ function doImport(file){
 
 /* ---------- 事件 ---------- */
 document.getElementById("addBookBtn").onclick = () => bookForm(null);
+document.getElementById("syncBtn").onclick = syncSettingsForm;
 document.getElementById("exportBtn").onclick = doExport;
 document.getElementById("importBtn").onclick = () => document.getElementById("importFile").click();
 document.getElementById("importFile").addEventListener("change", e => {
   if(e.target.files[0]) doImport(e.target.files[0]);
   e.target.value = "";
 });
-document.getElementById("q").addEventListener("input", () => {
-  if(currentBookId) renderBook(); else renderShelf();
+document.getElementById("q").addEventListener("input", renderAll);
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "hidden" && ghConfigured()){
+    clearTimeout(pushTimer); pushNow();
+  }
 });
 
+/* ---------- 启动 ---------- */
 renderStats();
 renderShelf();
+setSyncStatus(ghConfigured() ? "syncing" : "off");
+if(ghConfigured()) pullRemote();
 </script>
 </body>
 </html>
