@@ -1,0 +1,93 @@
+/* GitHub-style Admonitions (Alerts) */
+.post-content blockquote.markdown-alert {
+    margin: 1.5rem 0;
+    padding: 0.75rem 1rem;
+    border-inline-start: 4px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--bg-color);
+    color: var(--content);
+    font-size: 0.95em;
+    line-height: 1.6;
+}
+
+/* Reset default blockquote in alerts */
+.post-content blockquote.markdown-alert p {
+    margin: 0;
+}
+
+.markdown-alert-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem !important;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--title-color);
+}
+
+.markdown-alert-title svg {
+    margin-right: 8px;
+    fill: currentColor;
+    width: 16px;
+    height: 16px;
+    vertical-align: text-bottom;
+}
+
+/* Note Alert */
+.markdown-alert-note {
+    --border-color: #0969da;
+    --bg-color: rgba(9, 105, 218, 0.05);
+    --title-color: #0969da;
+}
+[data-theme="dark"] .markdown-alert-note {
+    --border-color: #2f81f7;
+    --bg-color: rgba(56, 139, 253, 0.1);
+    --title-color: #2f81f7;
+}
+
+/* Tip Alert */
+.markdown-alert-tip {
+    --border-color: #1a7f37;
+    --bg-color: rgba(26, 127, 55, 0.05);
+    --title-color: #1a7f37;
+}
+[data-theme="dark"] .markdown-alert-tip {
+    --border-color: #3fb950;
+    --bg-color: rgba(46, 160, 67, 0.1);
+    --title-color: #3fb950;
+}
+
+/* Important Alert */
+.markdown-alert-important {
+    --border-color: #8250df;
+    --bg-color: rgba(130, 80, 223, 0.05);
+    --title-color: #8250df;
+}
+[data-theme="dark"] .markdown-alert-important {
+    --border-color: #a371f7;
+    --bg-color: rgba(137, 87, 229, 0.1);
+    --title-color: #a371f7;
+}
+
+/* Warning Alert */
+.markdown-alert-warning {
+    --border-color: #9a6700;
+    --bg-color: rgba(154, 103, 0, 0.05);
+    --title-color: #9a6700;
+}
+[data-theme="dark"] .markdown-alert-warning {
+    --border-color: #d29922;
+    --bg-color: rgba(187, 128, 9, 0.1);
+    --title-color: #d29922;
+}
+
+/* Caution Alert */
+.markdown-alert-caution {
+    --border-color: #d1242f;
+    --bg-color: rgba(209, 36, 47, 0.05);
+    --title-color: #d1242f;
+}
+[data-theme="dark"] .markdown-alert-caution {
+    --border-color: #f85149;
+    --bg-color: rgba(248, 81, 73, 0.1);
+    --title-color: #f85149;
+}

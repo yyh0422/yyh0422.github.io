@@ -1,0 +1,67 @@
+@media screen and (max-width: 768px) {
+    /* theme-vars */
+    :root {
+        --gap: 14px;
+    }
+
+    /* profile-mode */
+    .profile img {
+        transform: scale(0.85);
+    }
+
+    /* post-entry */
+    .first-entry {
+        min-height: 260px;
+    }
+
+    /* archive */
+    .archive-month {
+        flex-direction: column;
+    }
+
+    .archive-year {
+        margin-top: 20px;
+    }
+
+    /* meta-date adaptation */
+    .long-date {
+        display: none !important;
+    }
+    .short-date {
+        display: inline !important;
+    }
+
+    /* footer */
+    .footer {
+        padding: calc((var(--footer-height) - var(--gap) - 10px) / 2) var(--gap);
+    }
+
+    /* pagination */
+    .pagination {
+        justify-content: center;
+        gap: 20px;
+    }
+
+    .pagination .next {
+        margin-inline-start: 0;
+    }
+}
+
+
+@media screen and (max-width: 340px) {
+    .share-buttons {
+        justify-content: unset;
+    }
+}
+
+@media (prefers-reduced-motion) {
+    /* terms; profile-mode; post-single; post-entry; post-entry; search; search */
+    .terms-tags a:active,
+    .button:active,
+    .post-entry:active,
+    .top-link,
+    #searchResults .focus,
+    #searchResults li:active {
+        transform: none;
+    }
+}
