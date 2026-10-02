@@ -1,0 +1,308 @@
+{{- define "main" }}
+
+{{- $tocPosition := .Param "TocPosition" | default "left" }}
+{{- $tocHover := .Param "tocHover" | default false }}
+
+<div class="post-container">
+  {{- $isEncrypted := or (and .File (in .File.Path "protected")) .Params.mima .Params.password -}}
+  {{- if and (.Param "ShowToc" | default true) (or (eq $tocPosition "left") (eq $tocPosition "right") (eq $tocPosition "auto")) }}
+  <aside class="toc-sidebar{{ if eq $tocPosition "auto" }} toc-auto{{ else }} {{ $tocPosition }}{{ end }}{{ if $tocHover }} toc-hover{{ end }}" {{ if $isEncrypted }}style="display:none"{{ end }}>
+    {{- partial "toc.html" . }}
+  </aside>
+  {{- end }}
+
+  <article class="post-single" {{ if or (and .File (in .File.Path "protected")) .Params.mima .Params.password }}data-pagefind-ignore{{ else }}data-pagefind-body{{ end }}>
+    {{- /* Pagefind 搜索结果缩略图：cover.image → defaultImage → favicon */ -}}
+    {{- $pfCoverImage := .Params.cover.image -}}
+    {{- if not $pfCoverImage }}{{ $pfCoverImage = site.Params.defaultImage }}{{ end -}}
+    {{- if not $pfCoverImage }}{{ $pfCoverImage = site.Params.assets.favicon }}{{ end -}}
+    {{- if $pfCoverImage -}}
+      {{- $pfCoverUrl := "" -}}
+      {{- $pfCoverRes := (.Resources.ByType "image").GetMatch (printf "*%s*" $pfCoverImage) -}}
+      {{- if $pfCoverRes -}}
+        {{- $pfCoverUrl = $pfCoverRes.RelPermalink -}}
+      {{- else -}}
+        {{- $pfCoverUrl = ($pfCoverImage | relURL) -}}
+      {{- end -}}
+      {{- $pfCoverAlt := .Params.cover.alt | default .Title -}}
+      <img src="{{ $pfCoverUrl }}" alt="{{ $pfCoverAlt }}" style="display:none" data-pagefind-meta="image[src], image_alt[alt]">
+    {{- end -}}
+    {{- $isHidden := (.Param "cover.hiddenInSingle") | default (.Param "cover.hidden") | default false }}
+    {{- partial "cover.html" (dict "cxt" . "IsSingle" true "isHidden" $isHidden) }}
+
+    <header class="post-header">
+      {{ partial "breadcrumbs.html" . }}
+      <h1 class="post-title entry-hint-parent">
+        <span class="post-title-text">
+          {{- if and (not $isEncrypted) .Params.realTitle -}}
+            {{ .Params.realTitle }}
+          {{- else -}}
+            {{ .Title }}
+          {{- end -}}
+        </span>
+        {{- if .Draft }}
+        <span class="entry-hint" title="Draft">
+          <svg xmlns="http://www.w3.org/2000/svg" height="35" viewBox="0 -960 960 960" fill="currentColor">
+            <path
+              d="M160-410v-60h300v60H160Zm0-165v-60h470v60H160Zm0-165v-60h470v60H160Zm360 580v-123l221-220q9-9 20-13t22-4q12 0 23 4.5t20 13.5l37 37q9 9 13 20t4 22q0 11-4.5 22.5T862.09-380L643-160H520Zm300-263-37-37 37 37ZM580-220h38l121-122-18-19-19-18-122 121v38Zm141-141-19-18 37 37-18-19Z" />
+          </svg>
+        </span>
+        {{- end }}
+      </h1>
+      {{- if .Description }}
+      <div class="post-description" {{ if $isEncrypted }}style="display:none"{{ end }}>
+        {{ .Description }}
+      </div>
+      {{- end }}
+      {{- if not (.Param "hideMeta") }}
+      <div class="post-meta">
+        {{- partial "post_meta.html" . -}}
+        {{- partial "translation_list.html" . -}}
+        {{- partial "edit_post.html" . -}}
+        {{- partial "post_canonical.html" . -}}
+      </div>
+      {{- end }}
+    </header>
+
+    {{- $password := .Params.mima | default .Params.password | default "" -}}
+    {{- if .Content }}
+      {{- if $isEncrypted -}}
+      <div id="encrypt-container">
+        <div id="hcl-pw-raw" style="display:none">{{ $password }}</div>
+        <div id="hcl-i18n" style="display:none"
+             data-title="{{ T "auth_title" }}"
+             data-tip="{{ .Site.Params.authTip | default (T "auth_tip") }}"
+             data-placeholder="{{ T "auth_placeholder" }}"
+             data-button="{{ T "auth_button" }}"
+             data-back="{{ T "auth_back" }}"
+             data-error="{{ T "auth_error" }}"></div>
+        {{- if .Params.realTitle -}}
+          <div id="real-title" style="display:none">{{ .Params.realTitle }}</div>
+        {{- end -}}
+        {{- /* 处理 realCover */ -}}
+        {{- $realCover := .Params.realCover -}}
+        {{- if $realCover -}}
+          {{- $rcImg := "" -}}
+          {{- $rcCap := "" -}}
+          {{- $rcAlt := "" -}}
+          {{- if reflect.IsMap $realCover -}}
+            {{- $rcImg = $realCover.image -}}
+            {{- $rcCap = $realCover.caption | default "" -}}
+            {{- $rcAlt = $realCover.alt | default $rcCap -}}
+          {{- else -}}
+            {{- $rcImg = $realCover -}}
+            {{- $rcAlt = .Params.realCoverAlt | default .Params.realCoverCaption | default "" -}}
+            {{- $rcCap = .Params.realCoverCaption | default "" -}}
+          {{- end -}}
+          {{- /* 尝试获取资源Permalink（如果是本地图片） */ -}}
+          {{- $pageBundleImg := (.Resources.ByType "image").GetMatch (printf "*%s*" $rcImg) -}}
+          {{- $finalRcImg := cond (ne $pageBundleImg nil) $pageBundleImg.RelPermalink ($rcImg | relURL) -}}
+          <div id="real-cover" style="display:none" data-image="{{ $finalRcImg }}" data-caption="{{ $rcCap }}" data-alt="{{ $rcAlt }}"></div>
+        {{- end -}}
+        {{- /* 处理 realTopCover */ -}}
+        {{- $realTopCover := .Params.realTopCover -}}
+        {{- if $realTopCover -}}
+          {{- $rtcImg := "" -}}
+          {{- $rtcCap := "" -}}
+          {{- $rtcAlt := "" -}}
+          {{- if reflect.IsMap $realTopCover -}}
+            {{- $rtcImg = $realTopCover.image -}}
+            {{- $rtcCap = $realTopCover.caption | default "" -}}
+            {{- $rtcAlt = $realTopCover.alt | default $rtcCap -}}
+          {{- else -}}
+            {{- $rtcImg = $realTopCover -}}
+            {{- $rtcAlt = .Params.realTopCoverAlt | default .Params.realTopCoverCaption | default "" -}}
+            {{- $rtcCap = .Params.realTopCoverCaption | default "" -}}
+          {{- end -}}
+          {{- $pageBundleImg := (.Resources.ByType "image").GetMatch (printf "*%s*" $rtcImg) -}}
+          {{- $finalRtcImg := cond (ne $pageBundleImg nil) $pageBundleImg.RelPermalink ($rtcImg | relURL) -}}
+          <div id="real-top-cover" style="display:none" data-image="{{ $finalRtcImg }}" data-caption="{{ $rtcCap }}" data-alt="{{ $rtcAlt }}"></div>
+        {{- end -}}
+      {{- end }}
+
+      <div class="post-content">
+        {{- if (.Param "enableAnchoredHeadings") -}}
+        {{- partial "anchored_headings.html" .Content -}}
+        {{- else }}{{ .Content }}{{ end }}
+      </div>
+
+      {{- /* 注意：这里必须用 div 而不是 footer —— pagefind 默认忽略 footer/nav 元素，
+             标签词会因此无法进入搜索索引 */ -}}
+      <div class="post-footer">
+        {{- $categories := .Language.Params.Taxonomies.category | default "categories" }}
+        {{- $tags := .Language.Params.Taxonomies.tag | default "tags" }}
+        <ul class="post-tags">
+          {{- range ($.GetTerms $categories) }}
+          <li><a href="{{ .Permalink }}" class="post-category">{{ .LinkTitle }}</a></li>
+          {{- end }}
+          {{- range ($.GetTerms $tags) }}
+          <li><a href="{{ .Permalink }}">{{ .Name }}</a></li>
+          {{- end }}
+        </ul>
+      </div>
+
+      {{- if $isEncrypted -}}
+        <div id="hcl-content-end" style="display:none"></div>
+      </div> <!-- #encrypt-container 结束 -->
+      {{- end }}
+
+      <footer class="post-footer">
+        {{- if (.Param "ShowPostNavLinks") }}
+        {{- partial "post_nav_links.html" . }}
+        {{- end }}
+        {{- if (and site.Params.ShowShareButtons (ne .Params.disableShare true)) }}
+          {{- partial "share_icons.html" . -}}
+        {{- end }}
+      </footer>
+
+      {{- $showComments := false -}}
+      {{- if or $password (and .File (in .File.Path "protected")) -}}
+        {{- $showComments = eq .Params.comments true -}}
+      {{- else -}}
+        {{- $showComments = .Param "comments" -}}
+      {{- end -}}
+      {{- if $showComments }}
+      <div id="comments" {{ if $isEncrypted }}style="display:none" data-wait-enc="true"{{ end }}>
+        {{- partial "comments.html" . }}
+      </div>
+      {{- end }}
+    {{- end }}
+  </article>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var tocSidebar = document.querySelector('.toc-sidebar');
+    if (!tocSidebar) return;
+
+    // ========== 通用定位逻辑 ==========
+    var currentTop = 0;
+    var targetTop = 0;
+    var isInitialSet = false;
+
+    // toc-auto 模式且非 hover：默认添加 left 定位类
+    if (tocSidebar.classList.contains('toc-auto') && !tocSidebar.classList.contains('toc-hover')) {
+      tocSidebar.classList.add('left');
+    }
+
+    function updateTocTarget() {
+      var anchor = document.querySelector('.breadcrumbs') || document.querySelector('.post-title');
+      if (anchor && tocSidebar) {
+        var rect = anchor.getBoundingClientRect();
+        var scrollY = window.scrollY;
+        var threshold = 100;
+        var parallaxFactor = 0.3;
+        var minTop = 80;
+        var parallaxOffset = Math.max(0, scrollY - threshold) * parallaxFactor;
+        var target = rect.top + parallaxOffset;
+        target = Math.max(minTop, target);
+        targetTop = target;
+        if (!isInitialSet) {
+          currentTop = targetTop;
+          tocSidebar.style.top = currentTop + 'px';
+          isInitialSet = true;
+        }
+      }
+    }
+
+    function smoothScrollLoop() {
+      if (isInitialSet) {
+        var diff = targetTop - currentTop;
+        if (Math.abs(diff) > 0.1) {
+          currentTop += diff * 0.08;
+          tocSidebar.style.top = currentTop + 'px';
+        }
+      }
+      requestAnimationFrame(smoothScrollLoop);
+    }
+
+    updateTocTarget();
+    smoothScrollLoop();
+    window.addEventListener('scroll', updateTocTarget);
+
+    var coverImg = document.querySelector('.entry-cover img');
+    if (coverImg) {
+      if (coverImg.complete) { updateTocTarget(); }
+      else { coverImg.addEventListener('load', updateTocTarget); }
+    }
+
+    // ========== hover 模式交互逻辑 ==========
+    if (tocSidebar.classList.contains('toc-hover')) {
+      var tocHoverDelay = parseInt("{{ .Site.Params.tocHoverDelay | default 200 }}");
+      var tocHideDelay = parseInt("{{ .Site.Params.tocHideDelay | default 2000 }}");
+      var postContent = document.querySelector('.post-content');
+      var hoverTimer = null;
+      var hideTimer = null;
+      var currentPosition = null;
+
+      var leftZone = document.createElement('div');
+      leftZone.className = 'toc-hover-zone left';
+      document.body.appendChild(leftZone);
+
+      var rightZone = document.createElement('div');
+      rightZone.className = 'toc-hover-zone right';
+      document.body.appendChild(rightZone);
+
+      function showToc() {
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        if (tocSidebar.classList.contains('toc-auto') && currentPosition) {
+          tocSidebar.classList.remove('left', 'right');
+          tocSidebar.classList.add(currentPosition);
+        }
+        tocSidebar.style.opacity = '1';
+        tocSidebar.style.visibility = 'visible';
+      }
+
+      function hideToc() {
+        tocSidebar.style.opacity = '0';
+        tocSidebar.style.visibility = 'hidden';
+      }
+
+      function delayHideToc() {
+        hideTimer = setTimeout(hideToc, tocHideDelay);
+      }
+
+      leftZone.addEventListener('mouseenter', function () {
+        currentPosition = 'left';
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        hoverTimer = setTimeout(showToc, tocHoverDelay);
+      });
+
+      rightZone.addEventListener('mouseenter', function () {
+        currentPosition = 'right';
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        hoverTimer = setTimeout(showToc, tocHoverDelay);
+      });
+
+      leftZone.addEventListener('mouseleave', function () {
+        if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+      });
+
+      rightZone.addEventListener('mouseleave', function () {
+        if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+      });
+
+      tocSidebar.addEventListener('mouseenter', function () {
+        if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        showToc();
+      });
+
+      tocSidebar.addEventListener('mouseleave', function () {
+        delayHideToc();
+      });
+
+      if (postContent) {
+        postContent.addEventListener('mouseenter', function () {
+          if (tocSidebar.style.opacity === '1' || tocSidebar.style.visibility === 'visible') {
+            delayHideToc();
+          }
+        });
+      }
+
+      hideToc();
+    }
+  });
+</script>
+
+{{- end }}{{/* end main */}}

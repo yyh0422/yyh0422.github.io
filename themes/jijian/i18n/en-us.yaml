@@ -1,0 +1,130 @@
+- id: prev_page
+  translation: "Prev"
+
+- id: next_page
+  translation: "Next"
+
+- id: prev_post
+  translation: "Previous Post"
+
+- id: next_post
+  translation: "Next Post"
+
+- id: read_time
+  translation:
+    one : "1 min"
+    other: "{{ .Count }} min"
+
+- id: toc
+  translation: "Table of Contents"
+
+- id: translations
+  translation: "Translations"
+
+- id: home
+  translation: "Home"
+
+- id: edit_post
+  translation: "Edit"
+
+
+- id: code_copy
+  translation: "copy"
+
+- id: code_copied
+  translation: "copied!"
+
+- id: word_count_title
+  translation: "Contains: %d Chinese characters, %d full-width punctuations, %d letters, %d numbers"
+
+- id: words
+  translation:
+    one : "1 word"
+    other: "{{ .Count }} words"
+
+- id: hover_date_format
+  translation: ""
+
+- id: hover_date_format_no_time
+  translation: ""
+
+- id: last_mod
+  translation: "Last updated"
+
+- id: comments_loading
+  translation: "Loading comments..."
+
+- id: comments_error_title
+  translation: "Oops! Failed to load Giscus comments."
+
+- id: comments_error_desc
+  translation: "Giscus is based on GitHub Discussions, maybe the current network cannot access GitHub!"
+
+- id: comments_retry
+  translation: "Retry"
+
+- id: protected_summary
+  translation: "This post is access-restricted, summary hidden."
+
+- id: auth_title
+  translation: "Private Content Locked"
+- id: auth_tip
+  translation: "Please enter the password to unlock content"
+- id: auth_placeholder
+  translation: "Enter access password..."
+- id: auth_button
+  translation: "Unlock Content"
+- id: auth_back
+  translation: "Back to Previous Page"
+- id: auth_error
+  translation: "❌ Incorrect password, please try again"
+
+- id: search_placeholder
+  translation: "Search here..."
+- id: search_clear_search
+  translation: "Clear"
+- id: search_load_more
+  translation: "Load more"
+- id: search_search_label
+  translation: "Search"
+- id: search_filters_label
+  translation: "Filters"
+- id: search_zero_results
+  translation: "No results for [SEARCH_TERM]"
+- id: search_many_results
+  translation: "Found [COUNT] results for [SEARCH_TERM]"
+- id: search_one_result
+  translation: "Found 1 result for [SEARCH_TERM]"
+- id: search_alt_search
+  translation: "No results for [SEARCH_TERM]. Showing results for [DIFFERENT_TERM] instead:"
+- id: search_search_suggestion
+  translation: "No results for [SEARCH_TERM]. Try one of the following:"
+- id: search_searching
+  translation: "Searching for [SEARCH_TERM]..."
+- id: search_keyboard_navigate
+  translation: "navigate"
+- id: search_keyboard_select
+  translation: "select"
+- id: search_keyboard_clear
+  translation: "clear"
+- id: search_keyboard_close
+  translation: "close"
+- id: search_keyboard_search
+  translation: "search"
+- id: search_results_label
+  translation: "Search results"
+- id: search_error_search
+  translation: "Search failed"
+- id: search_input_hint
+  translation: "Results will appear as you type"
+
+- id: markdown_alert_note
+  translation: "Note"
+- id: markdown_alert_tip
+  translation: "Tip"
+- id: markdown_alert_important
+  translation: "Important"
+- id: markdown_alert_warning
+  translation: "Warning"
+- id: markdown_alert_caution
+  translation: "Caution"

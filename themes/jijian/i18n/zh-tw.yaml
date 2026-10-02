@@ -1,0 +1,130 @@
+- id: prev_page
+  translation: "上一頁"
+
+- id: next_page
+  translation: "下一頁"
+
+- id: prev_post
+  translation: "上一篇"
+
+- id: next_post
+  translation: "下一篇"
+
+- id: read_time
+  translation:
+    one : "1 分鐘"
+    other: "{{ .Count }} 分鐘"
+
+- id: toc
+  translation: "目錄"
+
+- id: translations
+  translation: "語言"
+
+- id: home
+  translation: "首頁"
+
+- id: edit_post
+  translation: "編輯"
+
+
+- id: code_copy
+  translation: "複製"
+
+- id: code_copied
+  translation: "已複製！"
+
+- id: word_count_title
+  translation: "包含：%d個漢字，%d個標點(全角)，%d個字母(半角)，%d個數字"
+
+- id: words
+  translation:
+    one : "1字"
+    other: "{{ .Count }}字"
+
+- id: hover_date_format
+  translation: "2006-01-02 15:04:05 北京時間"
+
+- id: hover_date_format_no_time
+  translation: "2006-01-02 北京時間"
+
+- id: last_mod
+  translation: "最後更新"
+
+- id: comments_loading
+  translation: "載入評論中..."
+
+- id: comments_error_title
+  translation: "哎呀！Giscus評論模組載入失敗啦～"
+
+- id: comments_error_desc
+  translation: "Giscus是基於Github Discussions的，或許當前網絡無法訪問Github哦！"
+
+- id: comments_retry
+  translation: "重新載入"
+
+- id: protected_summary
+  translation: "這篇文章有受限訪問保護，摘要已隱藏。"
+
+- id: auth_title
+  translation: "私密內容已鎖定"
+- id: auth_tip
+  translation: "請輸入訪問密碼以解鎖內容"
+- id: auth_placeholder
+  translation: "輸入訪問密碼..."
+- id: auth_button
+  translation: "解鎖內容"
+- id: auth_back
+  translation: "返回上一頁"
+- id: auth_error
+  translation: "❌ 密碼錯誤，請重新輸入"
+
+- id: search_placeholder
+  translation: "在此搜尋..."
+- id: search_clear_search
+  translation: "清除"
+- id: search_load_more
+  translation: "載入更多"
+- id: search_search_label
+  translation: "搜尋"
+- id: search_filters_label
+  translation: "篩選"
+- id: search_zero_results
+  translation: "沒有找到關於 [SEARCH_TERM] 的結果"
+- id: search_many_results
+  translation: "找到 [COUNT] 條关于 [SEARCH_TERM] 的結果"
+- id: search_one_result
+  translation: "找到 1 條关于 [SEARCH_TERM] 的結果"
+- id: search_alt_search
+  translation: "沒有找到关于 [SEARCH_TERM] 的結果。顯示关于 [DIFFERENT_TERM] 的結果："
+- id: search_search_suggestion
+  translation: "沒有找到关于 [SEARCH_TERM] 的結果。請嘗試以下搜尋之一："
+- id: search_searching
+  translation: "正在搜尋 [SEARCH_TERM]..."
+- id: search_keyboard_navigate
+  translation: "導航"
+- id: search_keyboard_select
+  translation: "選擇"
+- id: search_keyboard_clear
+  translation: "清除"
+- id: search_keyboard_close
+  translation: "關閉"
+- id: search_keyboard_search
+  translation: "搜尋"
+- id: search_results_label
+  translation: "搜尋結果"
+- id: search_error_search
+  translation: "搜尋失敗"
+- id: search_input_hint
+  translation: "輸入時將顯示結果"
+
+- id: markdown_alert_note
+  translation: "備註"
+- id: markdown_alert_tip
+  translation: "建議"
+- id: markdown_alert_important
+  translation: "重要"
+- id: markdown_alert_warning
+  translation: "警告"
+- id: markdown_alert_caution
+  translation: "注意"
