@@ -38,3 +38,7 @@ menu:
       name: 收音机
       url: /radio/
       weight: 50
+    - identifier: books
+      name: 书架
+      url: /books/
+      weight: 60
