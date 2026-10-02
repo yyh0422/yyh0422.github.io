@@ -94,7 +94,7 @@ footer.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;
 <div class="wrap">
   <div id="shelfView"></div>
   <div id="bookView" style="display:none"></div>
-  <footer class="hint">配置云端同步后，数据自动存到你的 GitHub 私有仓库；没配之前先存在本机浏览器，记得用「备份导出」。</footer>
+  <footer class="hint">配置云端同步后，数据自动存到你的 GitHub 私有仓库；没配之前先存在本机浏览器，记得用「备份导出」。Kindle 标注可<a href="/books/kindle-export.html" style="color:var(--accent)">从这里导出</a>后用「导入恢复」导入。</footer>
 </div>
 
 <div id="modalRoot"></div>
@@ -456,6 +456,7 @@ function doImport(file){
   rd.onload = () => {
     try{
       const data = JSON.parse(rd.result);
+      if(isKindleExport(data)){ importKindle(data); return; }
       if(!data || !Array.isArray(data.books)) throw 0;
       const have = new Set(db.books.map(b => b.id));
       let n = 0;
@@ -467,10 +468,43 @@ function doImport(file){
       });
       save(); renderStats(); renderAll();
       alert(`导入完成，新增 ${n} 本书`);
-    }catch(e){ alert("文件格式不对，请选择之前导出的备份 JSON"); }
+    }catch(e){ alert("文件格式不对，请选择书架备份或 Kindle 导出的 JSON"); }
   };
   rd.readAsText(file);
 }
+/* ---------- Kindle 标注导入 ---------- */
+function isKindleExport(data){
+  if(!data || !Array.isArray(data.books) || !data.books.length) return false;
+  if(typeof data.source === "string" && data.source.indexOf("read.amazon") !== -1) return true;
+  const b0 = data.books[0];
+  return data.version === 1 && b0 && Array.isArray(b0.highlights);
+}
+function importKindle(data){
+  let nb = 0, nh = 0;
+  data.books.forEach(kb => {
+    if(!kb || !kb.title) return;
+    const key = String(kb.title).toLowerCase();
+    let b = db.books.find(x => String(x.title||"").toLowerCase() === key);
+    if(!b){
+      b = { id: uid(), title: kb.title, author: kb.author || "", status: "reading",
+            rating: 0, startedAt: "", finishedAt: "", excerpts: [], createdAt: Date.now() };
+      if(kb.asin) b.asin = kb.asin;
+      db.books.unshift(b); nb++;
+    }
+    b.excerpts = b.excerpts || [];
+    const haveText = new Set(b.excerpts.map(e => String(e.text||"").trim()));
+    (kb.highlights || []).forEach(h => {
+      const t = String((h && h.text) || "").trim();
+      if(!t || haveText.has(t)) return;
+      b.excerpts.push({ id: uid(), text: t,
+        ref: String((h && h.reference) || "").trim(), note: "", createdAt: Date.now() });
+      haveText.add(t); nh++;
+    });
+  });
+  save(); renderStats(); renderAll();
+  alert(`Kindle 导入完成：新增 ${nb} 本书，新增 ${nh} 条标注`);
+}
+
 
 /* ---------- 事件 ---------- */
 document.getElementById("addBookBtn").onclick = () => bookForm(null);
