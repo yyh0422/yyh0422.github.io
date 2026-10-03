@@ -1,14 +1,14 @@
 baseURL: https://yyh0422.github.io/
 locale: zh-cn
 defaultContentLanguage: zh-cn
-title: 我的博客
+title: 老杨的自留地
 theme: jijian
 pagination:
   pagerSize: 10
 enableRobotsTXT: true
 params:
   env: production
-  description: 我的个人博客
+  description: 折腾 AI、智能体、家庭网络和自动化的记录,顺便写点生活随笔
   defaultTheme: auto
   ShowReadingTime: true
   ShowPostNavLinks: true
