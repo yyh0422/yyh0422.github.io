@@ -49,9 +49,18 @@ h1{font-size:22px;margin:0;}
 .check input{width:18px;height:18px;}
 .row2{display:flex;gap:10px;flex-wrap:wrap;}
 .row2 .field{flex:1;min-width:200px;}
-.tabs{display:flex;gap:8px;margin-bottom:8px;}
-.tab{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-size:13px;color:var(--muted);cursor:pointer;}
+.coverrow{display:flex;gap:8px;align-items:center;}
+.coverrow input{flex:1;min-width:0;}
+.tabs{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.tab{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;}
 .tab.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+a.tab:visited{color:var(--muted);}
+#topnav{margin-top:10px;}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.toolbar button{border:1px solid var(--line);background:#fff;border-radius:8px;min-width:38px;min-height:38px;
+  padding:6px 10px;font-size:14px;cursor:pointer;color:var(--ink);font-family:inherit;}
+.toolbar button:active{background:var(--accent-soft);}
+.wcount{font-size:12px;color:var(--muted);text-align:right;margin-top:6px;}
 .preview{border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px 16px;min-height:200px;overflow:auto;word-break:break-word;}
 .preview h1,.preview h2,.preview h3,.preview h4{margin:1em 0 .5em;line-height:1.3;}
 .preview h1{font-size:1.5em}.preview h2{font-size:1.3em}.preview h3{font-size:1.15em}
@@ -62,6 +71,9 @@ h1{font-size:22px;margin:0;}
 .preview img{max-width:100%;}
 .preview hr{border:none;border-top:1px solid var(--line);}
 .preview a{color:var(--accent);}
+.preview table{border-collapse:collapse;width:100%;font-size:14px;margin:.8em 0;display:block;overflow-x:auto;}
+.preview th,.preview td{border:1px solid var(--line);padding:6px 10px;text-align:left;white-space:nowrap;}
+.preview th{background:#faf6ec;}
 .split{display:block;}
 @media(min-width:900px){.split.both{display:grid;grid-template-columns:1fr 1fr;gap:12px;}}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:92vw;z-index:60;
@@ -77,21 +89,22 @@ footer.hint a,.help a{color:var(--accent);}
 <header class="top"><div class="inner">
   <h1>✍️ 博客管理</h1>
   <div class="sub" id="subline">yyh0422.github.io</div>
-  <div class="btnrow" id="topbtns"></div>
+  <div class="tabs" id="topnav"></div>
 </div></header>
 
 <div class="wrap">
   <div id="app"></div>
-  <footer class="hint">Token 只保存在本机浏览器（localStorage），不会写进网页或仓库。保存即向 master 分支提交，站点约 1 分钟后更新。</footer>
+  <footer class="hint">Token 只保存在本机浏览器（localStorage），不会写进网页或仓库。保存即向 master 分支提交，站点约 1 分钟后更新。<br>图片上传到 static/images/，引用路径为 /images/xxx。</footer>
 </div>
 <div id="toast"></div>
 
 <script>
 "use strict";
 const OWNER = "yyh0422", REPO = "yyh0422.github.io", BRANCH = "master";
-const POSTS_DIR = "content/posts", ABOUT_PATH = "content/about.md";
+const POSTS_DIR = "content/posts", ABOUT_PATH = "content/about.md", IMAGES_DIR = "static/images";
 const TOKEN_KEY = "blogAdmin.token.v1";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
+const SITE_URL = "https://yyh0422.github.io/";
 
 let token = localStorage.getItem(TOKEN_KEY) || "";
 let dirty = false;
@@ -102,12 +115,12 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 /* ---------- UTF-8 / base64 ---------- */
-function b64encode(str){
-  const bytes = new TextEncoder().encode(str);
+function b64encodeBytes(bytes){
   let bin = ""; const CH = 0x8000;
   for(let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
   return btoa(bin);
 }
+function b64encode(str){ return b64encodeBytes(new TextEncoder().encode(str)); }
 function b64decode(b64){
   const bin = atob(String(b64).replace(/\s/g, ""));
   const bytes = new Uint8Array(bin.length);
@@ -158,6 +171,9 @@ async function putFile(path, text, message, sha){
   if(sha) body.sha = sha;
   return gh("PUT", `/contents/${enc(path)}`, body);
 }
+async function putFileB64(path, b64, message){
+  return gh("PUT", `/contents/${enc(path)}`, { message, content: b64, branch: BRANCH });
+}
 const delFile = (path, message, sha) => gh("DELETE", `/contents/${enc(path)}`, { message, sha, branch: BRANCH });
 
 /* ---------- Front matter ---------- */
@@ -178,7 +194,7 @@ function parseTags(v){
 }
 function parseDoc(text){
   const m = text.replace(/^\uFEFF/, "").match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n([\s\S]*))?$/);
-  const doc = { title: "", date: "", draft: false, tags: [], extra: [], body: "", toml: false };
+  const doc = { title: "", date: "", draft: false, tags: [], description: "", cover: "", extra: [], body: "", toml: false };
   if(!m){
     if(/^\+\+\+/.test(text)) doc.toml = true;
     doc.body = text; return doc;
@@ -191,6 +207,18 @@ function parseDoc(text){
     if(k === "title") doc.title = unq(mm[2]);
     else if(k === "date") doc.date = unq(mm[2]);
     else if(k === "draft") doc.draft = /^true$/i.test(mm[2].trim());
+    else if(k === "description") doc.description = unq(mm[2]);
+    else if(k === "cover"){
+      if(mm[2].trim()){ doc.cover = unq(mm[2]); }
+      else{
+        // 嵌套写法 cover:\n  image: xxx —— 吃掉缩进的后续行，取 image
+        while(i + 1 < lines.length && /^\s/.test(lines[i+1]) && lines[i+1].trim() !== ""){
+          i++;
+          const im = lines[i].match(/^\s*image\s*:\s*(.*)$/);
+          if(im) doc.cover = unq(im[1]);
+        }
+      }
+    }
     else if(k === "tags"){
       if(mm[2].trim()) doc.tags = parseTags(mm[2]);
       else { while(i + 1 < lines.length && /^\s*-\s+/.test(lines[i+1])){ i++; doc.tags.push(unq(lines[i].replace(/^\s*-\s+/, ""))); } }
@@ -201,12 +229,14 @@ function parseDoc(text){
 }
 function buildDoc(d, isAbout){
   const fm = ["title: " + JSON.stringify(d.title)];
+  if(d.description) fm.push("description: " + JSON.stringify(d.description));
   if(!isAbout){
     fm.push("date: " + d.date);
     fm.push("draft: " + (d.draft ? "true" : "false"));
     fm.push("tags: [" + d.tags.map(t => JSON.stringify(t)).join(", ") + "]");
   }
-  const all = fm.concat(d.extra.filter(l => l.trim() !== "" || true));
+  if(d.cover){ fm.push("cover:"); fm.push("  image: " + JSON.stringify(d.cover)); }
+  const all = fm.concat(d.extra);
   return "---\n" + all.join("\n") + "\n---\n" + d.body.replace(/\r\n/g, "\n").replace(/\n*$/, "") + "\n";
 }
 
@@ -223,7 +253,7 @@ function toLocalInput(dateStr){
 function fromLocalInput(v){ if(v.length === 16) v += ":00"; return v + "+08:00"; }
 function fmtDate(s){ const t = Date.parse(s); return isNaN(t) ? (s || "") : sh(t).replace("T", " ").slice(0, 16); }
 
-/* ---------- 简易 Markdown 预览 ---------- */
+/* ---------- 简易 Markdown 预览（支持表格） ---------- */
 function safeUrl(u){ u = u.trim(); return /^(https?:|mailto:|\/|#|\.{0,2}\/)/i.test(u) || !/^[a-z][a-z0-9+.-]*:/i.test(u) ? u : "#"; }
 function inline(s){
   s = esc(s);
@@ -234,6 +264,13 @@ function inline(s){
   s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>").replace(/~~([^~]+)~~/g, "<del>$1</del>");
   return s.replace(/\u0000(\d+)\u0000/g, (_, i) => "<code>" + codes[i] + "</code>");
 }
+function splitRow(ln){
+  return ln.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map(c => c.replace(/\\\|/g, "|").trim());
+}
+function isDelimRow(ln){
+  const cells = splitRow(ln);
+  return cells.length > 0 && cells.every(c => /^:?-{1,}:?$/.test(c));
+}
 function md(src){
   const lines = src.replace(/\r\n/g, "\n").split("\n");
   let out = [], i = 0;
@@ -243,6 +280,17 @@ function md(src){
       const buf = []; i++;
       while(i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
       i++; out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>"); continue;
+    }
+    // 表格：表头行 + 分隔行
+    if(ln.indexOf("|") !== -1 && i + 1 < lines.length && isDelimRow(lines[i+1])){
+      const head = splitRow(ln), delim = splitRow(lines[i+1]);
+      const aligns = delim.map(d => (d[0] === ":" && d[d.length-1] === ":") ? "center" : d[d.length-1] === ":" ? "right" : d[0] === ":" ? "left" : "");
+      const rows = []; i += 2;
+      while(i < lines.length && lines[i].trim() !== "" && lines[i].indexOf("|") !== -1){ rows.push(splitRow(lines[i])); i++; }
+      const cell = (c, k, th) => `<t${th ? "h" : "d"}${aligns[k] ? ` style="text-align:${aligns[k]}"` : ""}>${inline(c)}</t${th ? "h" : "d"}>`;
+      out.push("<table><thead><tr>" + head.map((h, k) => cell(h, k, true)).join("") + "</tr></thead><tbody>" +
+        rows.map(r => "<tr>" + r.map((c, k) => cell(c, k, false)).join("") + "</tr>").join("") + "</tbody></table>");
+      continue;
     }
     let m;
     if((m = ln.match(/^(#{1,6})\s+(.*)$/))){ out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); i++; continue; }
@@ -264,18 +312,26 @@ function md(src){
   return out.join("\n");
 }
 
-/* ---------- 顶部按钮 ---------- */
-function renderTop(){
-  const el = $("#topbtns");
+/* ---------- 顶部导航 ---------- */
+function renderNav(active){
+  const el = $("#topnav");
   if(!token){ el.innerHTML = ""; return; }
-  el.innerHTML = `<button class="btn small" id="b_new">＋ 新文章</button>
-    <button class="btn small ghost" id="b_list">文章列表</button>
-    <button class="btn small ghost" id="b_about">编辑「关于」</button>
-    <button class="btn small ghost" id="b_out">退出登录</button>`;
-  $("#b_new").onclick = () => guard(() => openEditor(null));
-  $("#b_list").onclick = () => guard(showList);
-  $("#b_about").onclick = () => guard(() => openEditor(ABOUT_PATH));
-  $("#b_out").onclick = () => guard(() => {
+  const tabs = [["list", "文章"], ["new", "＋ 新文章"], ["about", "关于"]];
+  el.innerHTML = tabs.map(([k, l]) => `<span class="tab${active === k ? " on" : ""}" data-nav="${k}">${l}</span>`).join("") +
+    `<a class="tab" href="${SITE_URL}" target="_blank" rel="noopener">网站 ↗</a>` +
+    `<span class="tab" data-nav="out">退出</span>`;
+  el.querySelectorAll("[data-nav]").forEach(t => t.onclick = () => {
+    const k = t.dataset.nav;
+    if(k === "out") return doLogout();
+    guard(() => {
+      if(k === "list") showList();
+      else if(k === "new") openEditor(null);
+      else if(k === "about") openEditor(ABOUT_PATH);
+    });
+  });
+}
+function doLogout(){
+  guard(() => {
     if(!confirm("退出登录会清除本机保存的 Token，确定吗？")) return;
     localStorage.removeItem(TOKEN_KEY); token = ""; listCache = null; ed = null; init();
   });
@@ -289,6 +345,7 @@ window.addEventListener("beforeunload", (e) => { if(dirty){ e.preventDefault(); 
 /* ---------- 登录 ---------- */
 function showLogin(){
   $("#subline").textContent = "请先登录";
+  renderNav();
   $("#app").innerHTML = `<div class="card">
     <div class="field"><label>GitHub Token（细粒度个人访问令牌）</label>
       <input type="password" id="tk" placeholder="github_pat_…" autocomplete="off">
@@ -296,7 +353,7 @@ function showLogin(){
         获取方法：打开 <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a><br>
         1. Repository access 选「Only select repositories」，只选 <b>yyh0422.github.io</b><br>
         2. Repository permissions → <b>Contents</b> 选 <b>Read and write</b>（其它都不用开）<br>
-        3. 生成后复制 token（只显示一次），粘贴到上面。<br>
+        3. 生成后复制 token（只显示一次），粘贴到上面。建议给 token 设一个过期时间。<br>
         Token 只保存在本机浏览器里，换设备需要重新粘贴。
       </div></div>
     <div id="lerr" class="warn"></div>
@@ -319,7 +376,7 @@ function showLogin(){
 
 /* ---------- 列表 ---------- */
 async function showList(){
-  ed = null; renderTop();
+  ed = null; renderNav("list");
   $("#subline").textContent = "文章列表";
   $("#app").innerHTML = `<div class="empty">加载中…</div>`;
   try{
@@ -360,8 +417,8 @@ function handleFatal(e){
 
 /* ---------- 编辑器 ---------- */
 async function openEditor(path){
-  renderTop();
   const isAbout = path === ABOUT_PATH;
+  renderNav(isAbout ? "about" : (path ? "list" : "new"));
   if(path){
     $("#app").innerHTML = `<div class="empty">加载中…</div>`;
     try{
@@ -378,19 +435,64 @@ async function openEditor(path){
     const dt = defaultDate();
     ed = { path: null, sha: null, isAbout: false, isNew: true,
       slug: "post-" + dt.slice(0, 10).replace(/-/g, "") + "-" + dt.slice(11, 16).replace(":", ""),
-      doc: { title: "", date: fromLocalInput(dt), draft: false, tags: [], extra: [], body: "" } };
+      doc: { title: "", date: fromLocalInput(dt), draft: false, tags: [], description: "", cover: "", extra: [], body: "" } };
   }
   dirty = false; renderEditor();
 }
+
+/* 光标/选区操作 */
+function taState(ta){ return { s: ta.selectionStart, e: ta.selectionEnd, v: ta.value }; }
+function taChanged(ta){ ta.focus(); ta.dispatchEvent(new Event("input", { bubbles: true })); }
+function wrapSel(ta, before, after, placeholder){
+  const { s, e, v } = taState(ta);
+  const sel = v.slice(s, e) || placeholder;
+  ta.value = v.slice(0, s) + before + sel + after + v.slice(e);
+  ta.selectionStart = s + before.length; ta.selectionEnd = s + before.length + sel.length;
+  taChanged(ta);
+}
+function prefixLines(ta, prefix){
+  const { s, e, v } = taState(ta);
+  const ls = v.slice(0, s).lastIndexOf("\n") + 1;
+  let le = v.indexOf("\n", e); if(le === -1) le = v.length;
+  const block = v.slice(ls, le).split("\n").map(l => prefix + l).join("\n");
+  ta.value = v.slice(0, ls) + block + v.slice(le);
+  taChanged(ta);
+}
+function insertText(ta, text){
+  const { s, e, v } = taState(ta);
+  ta.value = v.slice(0, s) + text + v.slice(e);
+  ta.selectionStart = ta.selectionEnd = s + text.length;
+  taChanged(ta);
+}
+
+let uploadTarget = "body";   // body | cover
+async function uploadImageFile(f){
+  let ext = (f.name.split(".").pop() || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if(!["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) ext = "jpg";
+  const stamp = sh(Date.now()).replace(/[-:T]/g, "");
+  const name = "img-" + stamp + "-" + Math.random().toString(36).slice(2, 7) + "." + ext;
+  const url = "/images/" + name;
+  toast("图片上传中…", "ok", 3000);
+  const buf = new Uint8Array(await f.arrayBuffer());
+  await putFileB64(`${IMAGES_DIR}/${name}`, b64encodeBytes(buf), "上传图片：" + name);
+  return url;
+}
+
 function renderEditor(){
   const d = ed.doc;
   $("#subline").textContent = ed.isAbout ? "编辑：关于 (content/about.md)" : (ed.isNew ? "新文章" : "编辑：" + ed.path);
   $("#app").innerHTML = `<div class="card">
     <div class="field"><label>标题</label><input type="text" id="f_title" value="${esc(d.title)}" placeholder="文章标题"></div>
-    ${ed.isNew ? `<div class="field"><label>文件名（英文/数字/横线，决定网址）</label>
-      <input type="text" id="f_slug" value="${esc(ed.slug)}" autocapitalize="off" autocomplete="off">
-      <div class="help">将保存为 ${POSTS_DIR}/<span id="slugShow"></span>.md，创建后不能改。</div></div>` : ""}
+    ${ed.isNew ? `<div class="field"><label>文件名（小写英文/数字/横线/下划线，决定网址）</label>
+      <input type="text" id="f_slug" value="${esc(ed.slug)}" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="help">将保存为 ${POSTS_DIR}/<span id="slugShow"></span>.md，创建后不能改名。</div></div>` : ""}
     ${ed.isAbout ? "" : `
+    <div class="field"><label>摘要（可空，用于搜索结果和分享时的描述）</label>
+      <input type="text" id="f_desc" value="${esc(d.description)}" placeholder="一句话介绍这篇文章"></div>
+    <div class="field"><label>封面图（可空）</label>
+      <div class="coverrow"><input type="text" id="f_cover" value="${esc(d.cover)}" placeholder="/images/xxx.jpg" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button type="button" class="btn small ghost" id="coverUpBtn">上传</button></div>
+      <div class="help">上传的图片存到 static/images/，引用路径自动填入。建议尺寸 1200×630。</div></div>
     <div class="row2">
       <div class="field"><label>发布时间（北京时间 +08:00）</label>
         <input type="datetime-local" step="1" id="f_date" value="${esc(toLocalInput(d.date))}">
@@ -400,11 +502,28 @@ function renderEditor(){
     </div>
     <div class="field"><label class="check"><input type="checkbox" id="f_draft" ${d.draft ? "checked" : ""}> 草稿（勾选后网站不显示）</label></div>`}
     <div class="field"><label>正文（Markdown）</label>
-      <div class="tabs"><span class="tab on" data-m="edit">编辑</span><span class="tab" data-m="both">编辑+预览</span><span class="tab" data-m="prev">仅预览</span></div>
+      <div class="toolbar" id="toolbar">
+        <button type="button" data-act="bold" title="加粗"><b>B</b></button>
+        <button type="button" data-act="italic" title="斜体"><i>I</i></button>
+        <button type="button" data-act="h2" title="二级标题">H2</button>
+        <button type="button" data-act="h3" title="三级标题">H3</button>
+        <button type="button" data-act="link" title="链接">🔗</button>
+        <button type="button" data-act="image" title="插入图片（上传）">🖼</button>
+        <button type="button" data-act="quote" title="引用">❝</button>
+        <button type="button" data-act="code" title="代码块">{"}"}</button>
+        <button type="button" data-act="ul" title="无序列表">• 列表</button>
+        <button type="button" data-act="ol" title="有序列表">1. 列表</button>
+        <button type="button" data-act="table" title="插入表格">表格</button>
+        <button type="button" data-act="hr" title="分隔线">―</button>
+      </div>
+      <input type="file" id="imgFile" accept="image/*" class="hidden">
+      <div class="tabs"><span class="tab on" data-m="edit">编辑</span><span class="tab" data-m="both">编辑+预览</span><span class="tab" data-m="prev">预览（简易）</span></div>
       <div class="split" id="split">
         <textarea id="f_body" spellcheck="false">${esc(d.body)}</textarea>
         <div class="preview hidden" id="prev"></div>
-      </div></div>
+      </div>
+      <div class="wcount" id="wcount"></div>
+    </div>
     <div id="serr" class="warn" style="font-size:14px"></div>
     <div class="btnrow">
       <button class="btn" id="saveBtn">${ed.isNew ? "发布 / 保存" : "保存"}</button>
@@ -412,24 +531,73 @@ function renderEditor(){
       ${ed.isNew || ed.isAbout ? "" : `<button class="btn danger" id="delBtn">删除</button>`}
       ${ed.isNew ? "" : `<button class="btn ghost" id="reloadBtn">重新载入</button>`}
     </div></div>`;
-  const mark = () => { dirty = true; futureCheck(); };
+  const mark = () => { dirty = true; futureCheck(); wcount(); };
   document.querySelectorAll("#app input, #app textarea").forEach(el => el.addEventListener("input", mark));
   const sl = $("#f_slug");
-  if(sl){ const upd = () => $("#slugShow").textContent = sl.value.trim(); sl.addEventListener("input", upd); upd(); }
+  if(sl){
+    const upd = () => { sl.value = sl.value.toLowerCase(); $("#slugShow").textContent = sl.value.trim(); };
+    sl.addEventListener("input", upd); upd();
+  }
+  // 工具栏
+  const ta = () => $("#f_body");
+  document.querySelectorAll("#toolbar button").forEach(b => b.onclick = () => {
+    const t = ta(), act = b.dataset.act;
+    if(act === "bold") wrapSel(t, "**", "**", "加粗文字");
+    else if(act === "italic") wrapSel(t, "*", "*", "斜体文字");
+    else if(act === "h2") prefixLines(t, "## ");
+    else if(act === "h3") prefixLines(t, "### ");
+    else if(act === "link"){ const { s, e, v } = taState(t); const sel = v.slice(s, e) || "链接文字"; wrapSel(t, "[", "](https://)", sel); }
+    else if(act === "image"){ uploadTarget = "body"; $("#imgFile").click(); }
+    else if(act === "quote") prefixLines(t, "> ");
+    else if(act === "code"){
+      const { s, e, v } = taState(t), sel = v.slice(s, e);
+      if(sel.indexOf("\n") !== -1) wrapSel(t, "```\n", "\n```", sel);
+      else wrapSel(t, "`", "`", "代码");
+    }
+    else if(act === "ul") prefixLines(t, "- ");
+    else if(act === "ol"){
+      const { s, e, v } = taState(t);
+      const ls = v.slice(0, s).lastIndexOf("\n") + 1;
+      let le = v.indexOf("\n", e); if(le === -1) le = v.length;
+      let n = 1;
+      const block = v.slice(ls, le).split("\n").map(l => (n++) + ". " + l).join("\n");
+      t.value = v.slice(0, ls) + block + v.slice(le); taChanged(t);
+    }
+    else if(act === "table") insertText(t, "\n\n| 标题1 | 标题2 |\n| --- | --- |\n| 内容 | 内容 |\n\n");
+    else if(act === "hr") insertText(t, "\n\n---\n\n");
+  });
+  // 图片上传
+  $("#imgFile").onchange = async (ev) => {
+    const f = ev.target.files[0]; ev.target.value = "";
+    if(!f) return;
+    try{
+      const url = await uploadImageFile(f);
+      if(uploadTarget === "cover"){ $("#f_cover").value = url; mark(); }
+      else insertText(ta(), `![](${url})`);
+      toast("✅ 图片已上传" + (uploadTarget === "cover" ? "并填入封面" : "并插入正文"), "ok", 4000);
+    }catch(e){ toast("图片上传失败：" + e.message, "err", 8000); }
+  };
+  const cub = $("#coverUpBtn");
+  if(cub) cub.onclick = () => { uploadTarget = "cover"; $("#imgFile").click(); };
+  // 预览模式
   const setMode = (m) => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.m === m));
+    document.querySelectorAll(".tab[data-m]").forEach(t => t.classList.toggle("on", t.dataset.m === m));
     $("#f_body").classList.toggle("hidden", m === "prev");
     $("#prev").classList.toggle("hidden", m === "edit");
     $("#split").classList.toggle("both", m === "both");
     if(m !== "edit") $("#prev").innerHTML = md($("#f_body").value) || '<span style="color:var(--muted)">（空）</span>';
   };
-  document.querySelectorAll(".tab").forEach(t => t.onclick = () => setMode(t.dataset.m));
+  document.querySelectorAll(".tab[data-m]").forEach(t => t.onclick = () => setMode(t.dataset.m));
   $("#f_body").addEventListener("input", () => { if(!$("#prev").classList.contains("hidden")) $("#prev").innerHTML = md($("#f_body").value); });
   $("#saveBtn").onclick = save;
   $("#cancelBtn").onclick = () => guard(showList);
   if($("#delBtn")) $("#delBtn").onclick = del;
   if($("#reloadBtn")) $("#reloadBtn").onclick = () => guard(() => openEditor(ed.path));
-  futureCheck();
+  futureCheck(); wcount();
+}
+function wcount(){
+  const el = $("#wcount"); if(!el) return;
+  el.textContent = $("#f_body").value.replace(/\s/g, "").length + " 字";
 }
 function futureCheck(){
   const f = $("#f_date"), w = $("#futureWarn"); if(!f || !w) return;
@@ -441,6 +609,8 @@ function readForm(){
   d.title = $("#f_title").value.trim();
   d.body = $("#f_body").value;
   if(!ed.isAbout){
+    d.description = $("#f_desc").value.trim();
+    d.cover = $("#f_cover").value.trim();
     d.date = fromLocalInput($("#f_date").value || defaultDate());
     d.draft = $("#f_draft").checked;
     d.tags = $("#f_tags").value.split(/[,，、;；\s]+/).map(s => s.trim()).filter(Boolean);
@@ -453,8 +623,8 @@ async function save(){
   if(!d.title){ err.textContent = "请填写标题。"; return; }
   let path = ed.path;
   if(ed.isNew){
-    const slug = $("#f_slug").value.trim();
-    if(!/^[a-z0-9][a-z0-9-_]*$/i.test(slug)){ err.textContent = "文件名只能用英文字母、数字、横线、下划线，且不能为空。"; return; }
+    const slug = $("#f_slug").value.trim().toLowerCase();
+    if(!/^[a-z0-9][a-z0-9-_]*$/.test(slug)){ err.textContent = "文件名只能用小写英文字母、数字、横线、下划线，且不能为空。"; return; }
     path = `${POSTS_DIR}/${slug}.md`;
   }
   if(!ed.isAbout && Date.parse(d.date) > Date.now() + 1000 && !confirm("发布时间在未来，网站构建时会跳过这篇文章。仍要保存吗？")) return;
@@ -468,6 +638,7 @@ async function save(){
       : (ed.isNew ? (d.draft ? "新增草稿：" : "发布文章：") : "更新文章：") + d.title;
     const r = await putFile(path, buildDoc(d, ed.isAbout), msg, ed.sha);
     ed.sha = r.content.sha; ed.path = path; ed.isNew = false; dirty = false; listCache = null;
+    renderNav(ed.isAbout ? "about" : "list");
     $("#subline").textContent = ed.isAbout ? "编辑：关于 (content/about.md)" : "编辑：" + path;
     toast("✅ 已保存，网站约 1 分钟后更新" + (d.draft && !ed.isAbout ? "（草稿不会显示）" : ""), "ok", 7000);
     renderEditor();
@@ -493,7 +664,6 @@ async function del(){
 
 /* ---------- 启动 ---------- */
 function init(){
-  renderTop();
   if(!token) showLogin(); else showList();
 }
 init();
