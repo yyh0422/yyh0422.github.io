@@ -25,7 +25,7 @@ menu:
     - identifier: posts
       name: 文章
       url: /posts/
-      weight: 40
+      weight: 20
     - identifier: archives
       name: 归档
       url: /archives/
@@ -37,8 +37,8 @@ menu:
     - identifier: radio
       name: 收音机
       url: /radio/
-      weight: 30
+      weight: 40
     - identifier: books
       name: 书架
       url: /books/
-      weight: 20
+      weight: 30
