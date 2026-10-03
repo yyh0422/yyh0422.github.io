@@ -25,20 +25,20 @@ menu:
     - identifier: posts
       name: 文章
       url: /posts/
-      weight: 20
+      weight: 40
     - identifier: archives
       name: 归档
       url: /archives/
-      weight: 30
+      weight: 50
     - identifier: about
       name: 关于
       url: /about/
-      weight: 40
+      weight: 60
     - identifier: radio
       name: 收音机
       url: /radio/
-      weight: 50
+      weight: 30
     - identifier: books
       name: 书架
       url: /books/
-      weight: 60
+      weight: 20
