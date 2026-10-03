@@ -1,0 +1,28 @@
+media:
+  input: static/images
+  output: /images
+content:
+  - name: posts
+    label: 文章
+    type: collection
+    path: content/posts
+    view:
+      fields: [title, date, draft]
+      primary: title
+      sort: [date]
+      default:
+        sort: date
+        order: desc
+    fields:
+      - { name: title, label: 标题, type: string }
+      - { name: date, label: 日期, type: date, options: { format: "yyyy-MM-dd'T'HH:mm:ssxxx" } }
+      - { name: draft, label: 草稿, type: boolean, default: false }
+      - { name: tags, label: 标签, type: string, list: true }
+      - { name: body, label: 正文, type: rich-text }
+  - name: about
+    label: 关于页
+    type: file
+    path: content/about.md
+    fields:
+      - { name: title, label: 标题, type: string }
+      - { name: body, label: 正文, type: rich-text }
