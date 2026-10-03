@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>博客管理</title>
+<style>
+:root{
+  --bg:#f6f1e7; --card:#fffdf8; --ink:#2e2a23; --muted:#978b78;
+  --accent:#a3541f; --accent-soft:#f3e4d3; --line:#e7dcc6;
+  --green:#4a7c59; --red:#b0483a; --radius:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.6;}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 90px;}
+header.top{position:sticky;top:0;z-index:10;background:rgba(246,241,231,.96);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+header.top .inner{max-width:860px;margin:0 auto;padding:14px 16px 10px;}
+h1{font-size:22px;margin:0;}
+.sub{color:var(--muted);font-size:13px;margin-top:4px;}
+.btn{border:none;border-radius:999px;padding:10px 18px;font-size:15px;cursor:pointer;
+  background:var(--accent);color:#fff;font-weight:600;white-space:nowrap;}
+.btn:disabled{opacity:.5;cursor:default;}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent);}
+.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red);}
+.btn.small{padding:6px 12px;font-size:13px;}
+.btnrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.item{cursor:pointer;}
+.item:active{transform:scale(.99);}
+.item-title{font-size:17px;font-weight:700;margin:0 0 4px;word-break:break-all;}
+.item-meta{color:var(--muted);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.badge{font-size:12px;padding:2px 10px;border-radius:999px;background:#e2ecdf;color:var(--green);}
+.badge.draft{background:#f0ddd8;color:var(--red);}
+.empty{text-align:center;color:var(--muted);padding:50px 20px;font-size:15px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+.field input[type=text],.field input[type=password],.field input[type=datetime-local],.field textarea{
+  width:100%;padding:10px 12px;font-size:15px;
+  border:1px solid var(--line);border-radius:10px;background:#fff;font-family:inherit;outline:none;}
+.field input:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{min-height:360px;resize:vertical;line-height:1.7;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"PingFang SC","Microsoft YaHei",monospace;}
+.field .help{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.7;}
+.check{display:flex;align-items:center;gap:8px;font-size:15px;}
+.check input{width:18px;height:18px;}
+.row2{display:flex;gap:10px;flex-wrap:wrap;}
+.row2 .field{flex:1;min-width:200px;}
+.tabs{display:flex;gap:8px;margin-bottom:8px;}
+.tab{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-size:13px;color:var(--muted);cursor:pointer;}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.preview{border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px 16px;min-height:200px;overflow:auto;word-break:break-word;}
+.preview h1,.preview h2,.preview h3,.preview h4{margin:1em 0 .5em;line-height:1.3;}
+.preview h1{font-size:1.5em}.preview h2{font-size:1.3em}.preview h3{font-size:1.15em}
+.preview pre{background:#faf6ec;padding:10px 12px;border-radius:8px;overflow:auto;font-size:14px;}
+.preview code{background:#faf6ec;padding:1px 5px;border-radius:4px;font-size:.92em;}
+.preview pre code{background:none;padding:0;}
+.preview blockquote{margin:.8em 0;padding:2px 14px;border-left:3px solid var(--accent);color:var(--muted);}
+.preview img{max-width:100%;}
+.preview hr{border:none;border-top:1px solid var(--line);}
+.preview a{color:var(--accent);}
+.split{display:block;}
+@media(min-width:900px){.split.both{display:grid;grid-template-columns:1fr 1fr;gap:12px;}}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:92vw;z-index:60;
+  padding:12px 18px;border-radius:12px;color:#fff;font-size:14px;line-height:1.5;display:none;box-shadow:0 4px 16px rgba(0,0,0,.2);}
+#toast.ok{background:var(--green);} #toast.err{background:var(--red);}
+.warn{color:var(--red);font-size:12px;margin-top:6px;}
+footer.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;padding:0 20px;}
+footer.hint a,.help a{color:var(--accent);}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+<header class="top"><div class="inner">
+  <h1>✍️ 博客管理</h1>
+  <div class="sub" id="subline">yyh0422.github.io</div>
+  <div class="btnrow" id="topbtns"></div>
+</div></header>
+
+<div class="wrap">
+  <div id="app"></div>
+  <footer class="hint">Token 只保存在本机浏览器（localStorage），不会写进网页或仓库。保存即向 master 分支提交，站点约 1 分钟后更新。</footer>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const OWNER = "yyh0422", REPO = "yyh0422.github.io", BRANCH = "master";
+const POSTS_DIR = "content/posts", ABOUT_PATH = "content/about.md";
+const TOKEN_KEY = "blogAdmin.token.v1";
+const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
+
+let token = localStorage.getItem(TOKEN_KEY) || "";
+let dirty = false;
+let ed = null;          // 当前编辑状态
+let listCache = null;
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- UTF-8 / base64 ---------- */
+function b64encode(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = ""; const CH = 0x8000;
+  for(let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  return btoa(bin);
+}
+function b64decode(b64){
+  const bin = atob(String(b64).replace(/\s/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
+/* ---------- 提示 ---------- */
+let toastTimer;
+function toast(msg, type, ms){
+  const t = $("#toast"); t.textContent = msg; t.className = type || "ok"; t.style.display = "block";
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = "none", ms || 5000);
+}
+
+/* ---------- GitHub API ---------- */
+class ApiError extends Error { constructor(status, msg){ super(msg); this.status = status; } }
+function explain(status, apiMsg, ctx){
+  switch(status){
+    case 401: return "Token 无效或已过期，请退出后重新粘贴新的 Token。";
+    case 403: return "没有权限或请求过于频繁：请确认 Token 只授权了本仓库，且「Contents」权限为 Read and write。（" + (apiMsg || "403") + "）";
+    case 404: return ctx === "auth" ? "找不到仓库：Token 可能没有授权 yyh0422.github.io 这个仓库。" : "文件或目录不存在。";
+    case 409: return "提交冲突：这个文件刚刚在别处被修改过。请先点「重新载入」拿到最新版本，再重新编辑保存，以免覆盖。";
+    case 422: return "提交被拒绝（可能文件已存在或版本已过期）：请重新载入后再试。（" + (apiMsg || "422") + "）";
+    default: return "请求失败 HTTP " + status + (apiMsg ? "：" + apiMsg : "");
+  }
+}
+async function gh(method, path, body, ctx){
+  let r;
+  try{
+    r = await fetch(API + path, {
+      method, cache: "no-store",
+      headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28" },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  }catch(e){ throw new ApiError(0, "网络错误，请检查网络后重试。"); }
+  if(r.status === 404 && method === "GET" && ctx === "soft") return null;
+  if(!r.ok){
+    let m = ""; try{ m = (await r.json()).message; }catch(e){}
+    throw new ApiError(r.status, explain(r.status, m, ctx));
+  }
+  return r.status === 204 ? {} : r.json();
+}
+const enc = (p) => p.split("/").map(encodeURIComponent).join("/");
+const getFile = (path) => gh("GET", `/contents/${enc(path)}?ref=${BRANCH}&_=${Date.now()}`, null, "soft");
+async function putFile(path, text, message, sha){
+  const body = { message, content: b64encode(text), branch: BRANCH };
+  if(sha) body.sha = sha;
+  return gh("PUT", `/contents/${enc(path)}`, body);
+}
+const delFile = (path, message, sha) => gh("DELETE", `/contents/${enc(path)}`, { message, sha, branch: BRANCH });
+
+/* ---------- Front matter ---------- */
+function unq(v){
+  v = v.trim();
+  if(v[0] === '"'){ try{ return JSON.parse(v); }catch(e){} return v.replace(/^"|"$/g, ""); }
+  if(v[0] === "'") return v.replace(/^'|'$/g, "").replace(/''/g, "'");
+  return v;
+}
+function parseTags(v){
+  v = v.trim();
+  if(!v) return [];
+  if(v[0] === "["){
+    try{ const a = JSON.parse(v); if(Array.isArray(a)) return a.map(String); }catch(e){}
+    return v.replace(/^\[|\]$/g, "").split(",").map(unq).filter(Boolean);
+  }
+  return [unq(v)];
+}
+function parseDoc(text){
+  const m = text.replace(/^\uFEFF/, "").match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n([\s\S]*))?$/);
+  const doc = { title: "", date: "", draft: false, tags: [], extra: [], body: "", toml: false };
+  if(!m){
+    if(/^\+\+\+/.test(text)) doc.toml = true;
+    doc.body = text; return doc;
+  }
+  doc.body = (m[2] || "").replace(/^\r?\n/, "");
+  const lines = m[1].split(/\r?\n/);
+  for(let i = 0; i < lines.length; i++){
+    const mm = lines[i].match(/^([A-Za-z_][\w-]*)\s*:\s*(.*)$/);
+    const k = mm ? mm[1].toLowerCase() : null;
+    if(k === "title") doc.title = unq(mm[2]);
+    else if(k === "date") doc.date = unq(mm[2]);
+    else if(k === "draft") doc.draft = /^true$/i.test(mm[2].trim());
+    else if(k === "tags"){
+      if(mm[2].trim()) doc.tags = parseTags(mm[2]);
+      else { while(i + 1 < lines.length && /^\s*-\s+/.test(lines[i+1])){ i++; doc.tags.push(unq(lines[i].replace(/^\s*-\s+/, ""))); } }
+    }
+    else doc.extra.push(lines[i]);
+  }
+  return doc;
+}
+function buildDoc(d, isAbout){
+  const fm = ["title: " + JSON.stringify(d.title)];
+  if(!isAbout){
+    fm.push("date: " + d.date);
+    fm.push("draft: " + (d.draft ? "true" : "false"));
+    fm.push("tags: [" + d.tags.map(t => JSON.stringify(t)).join(", ") + "]");
+  }
+  const all = fm.concat(d.extra.filter(l => l.trim() !== "" || true));
+  return "---\n" + all.join("\n") + "\n---\n" + d.body.replace(/\r\n/g, "\n").replace(/\n*$/, "") + "\n";
+}
+
+/* ---------- 日期（+08:00） ---------- */
+const pad = (n) => String(n).padStart(2, "0");
+function sh(ms){ return new Date(ms + 8 * 3600e3).toISOString().slice(0, 19); }   // 上海时间 YYYY-MM-DDTHH:mm:ss
+function defaultDate(){ return sh(Date.now() - 5 * 60e3); }
+function toLocalInput(dateStr){
+  if(!dateStr) return defaultDate();
+  const t = Date.parse(dateStr);
+  if(isNaN(t)) return defaultDate();
+  return sh(t);
+}
+function fromLocalInput(v){ if(v.length === 16) v += ":00"; return v + "+08:00"; }
+function fmtDate(s){ const t = Date.parse(s); return isNaN(t) ? (s || "") : sh(t).replace("T", " ").slice(0, 16); }
+
+/* ---------- 简易 Markdown 预览 ---------- */
+function safeUrl(u){ u = u.trim(); return /^(https?:|mailto:|\/|#|\.{0,2}\/)/i.test(u) || !/^[a-z][a-z0-9+.-]*:/i.test(u) ? u : "#"; }
+function inline(s){
+  s = esc(s);
+  const codes = [];
+  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (_, a, u) => `<img alt="${a}" src="${esc(safeUrl(u.replace(/&amp;/g,"&")))}">`);
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)[^)]*\)/g, (_, a, u) => `<a href="${esc(safeUrl(u.replace(/&amp;/g,"&")))}" target="_blank" rel="noopener">${a}</a>`);
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>").replace(/~~([^~]+)~~/g, "<del>$1</del>");
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => "<code>" + codes[i] + "</code>");
+}
+function md(src){
+  const lines = src.replace(/\r\n/g, "\n").split("\n");
+  let out = [], i = 0;
+  while(i < lines.length){
+    const ln = lines[i];
+    if(/^```/.test(ln)){
+      const buf = []; i++;
+      while(i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+      i++; out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>"); continue;
+    }
+    let m;
+    if((m = ln.match(/^(#{1,6})\s+(.*)$/))){ out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); i++; continue; }
+    if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(ln)){ out.push("<hr>"); i++; continue; }
+    if(/^>\s?/.test(ln)){
+      const buf = []; while(i < lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/, ""));
+      out.push("<blockquote>" + md(buf.join("\n")) + "</blockquote>"); continue;
+    }
+    if(/^\s*([-*+]|\d+\.)\s+/.test(ln)){
+      const ord = /^\s*\d+\./.test(ln), buf = [];
+      while(i < lines.length && /^\s*([-*+]|\d+\.)\s+/.test(lines[i])) buf.push("<li>" + inline(lines[i++].replace(/^\s*([-*+]|\d+\.)\s+/, "")) + "</li>");
+      out.push((ord ? "<ol>" : "<ul>") + buf.join("") + (ord ? "</ol>" : "</ul>")); continue;
+    }
+    if(ln.trim() === ""){ i++; continue; }
+    const buf = [];
+    while(i < lines.length && lines[i].trim() !== "" && !/^(```|#{1,6}\s|>\s?|\s*([-*+]|\d+\.)\s+)/.test(lines[i])) buf.push(inline(lines[i++]));
+    out.push("<p>" + buf.join("<br>") + "</p>");
+  }
+  return out.join("\n");
+}
+
+/* ---------- 顶部按钮 ---------- */
+function renderTop(){
+  const el = $("#topbtns");
+  if(!token){ el.innerHTML = ""; return; }
+  el.innerHTML = `<button class="btn small" id="b_new">＋ 新文章</button>
+    <button class="btn small ghost" id="b_list">文章列表</button>
+    <button class="btn small ghost" id="b_about">编辑「关于」</button>
+    <button class="btn small ghost" id="b_out">退出登录</button>`;
+  $("#b_new").onclick = () => guard(() => openEditor(null));
+  $("#b_list").onclick = () => guard(showList);
+  $("#b_about").onclick = () => guard(() => openEditor(ABOUT_PATH));
+  $("#b_out").onclick = () => guard(() => {
+    if(!confirm("退出登录会清除本机保存的 Token，确定吗？")) return;
+    localStorage.removeItem(TOKEN_KEY); token = ""; listCache = null; ed = null; init();
+  });
+}
+function guard(fn){
+  if(dirty && !confirm("有未保存的修改，确定放弃吗？")) return;
+  dirty = false; fn();
+}
+window.addEventListener("beforeunload", (e) => { if(dirty){ e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- 登录 ---------- */
+function showLogin(){
+  $("#subline").textContent = "请先登录";
+  $("#app").innerHTML = `<div class="card">
+    <div class="field"><label>GitHub Token（细粒度个人访问令牌）</label>
+      <input type="password" id="tk" placeholder="github_pat_…" autocomplete="off">
+      <div class="help">
+        获取方法：打开 <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a><br>
+        1. Repository access 选「Only select repositories」，只选 <b>yyh0422.github.io</b><br>
+        2. Repository permissions → <b>Contents</b> 选 <b>Read and write</b>（其它都不用开）<br>
+        3. 生成后复制 token（只显示一次），粘贴到上面。<br>
+        Token 只保存在本机浏览器里，换设备需要重新粘贴。
+      </div></div>
+    <div id="lerr" class="warn"></div>
+    <div class="btnrow"><button class="btn" id="loginBtn">登录</button></div></div>`;
+  const go = async () => {
+    const v = $("#tk").value.trim(); if(!v) return;
+    const btn = $("#loginBtn"); btn.disabled = true; btn.textContent = "验证中…"; $("#lerr").textContent = "";
+    token = v;
+    try{
+      const repo = await gh("GET", "", null, "auth");
+      if(repo.permissions && repo.permissions.push === false) throw new ApiError(403, "这个 Token 只有读取权限，请把 Contents 设为 Read and write。");
+      localStorage.setItem(TOKEN_KEY, v); init();
+    }catch(e){
+      token = ""; btn.disabled = false; btn.textContent = "登录"; $("#lerr").textContent = e.message;
+    }
+  };
+  $("#loginBtn").onclick = go;
+  $("#tk").onkeydown = (e) => { if(e.key === "Enter") go(); };
+}
+
+/* ---------- 列表 ---------- */
+async function showList(){
+  ed = null; renderTop();
+  $("#subline").textContent = "文章列表";
+  $("#app").innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    const dir = await getFile(POSTS_DIR);
+    const files = Array.isArray(dir) ? dir.filter(f => f.type === "file" && /\.md$/i.test(f.name) && f.name !== "_index.md") : [];
+    const posts = [];
+    let idx = 0;
+    const worker = async () => {
+      while(idx < files.length){
+        const f = files[idx++];
+        try{
+          const d = await getFile(f.path);
+          const doc = parseDoc(b64decode(d.content));
+          posts.push({ path: f.path, name: f.name, title: doc.title || f.name, date: doc.date, draft: doc.draft });
+        }catch(e){ posts.push({ path: f.path, name: f.name, title: f.name, date: "", draft: false, err: true }); }
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    posts.sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
+    listCache = posts;
+    if(!posts.length){
+      $("#app").innerHTML = `<div class="empty">还没有文章。点上面的「＋ 新文章」写第一篇吧。</div>`; return;
+    }
+    $("#app").innerHTML = posts.map((p, i) => `<div class="card item" data-i="${i}">
+      <div class="item-title">${esc(p.title)}</div>
+      <div class="item-meta"><span>${esc(fmtDate(p.date))}</span>
+        <span class="badge ${p.draft ? "draft" : ""}">${p.draft ? "草稿" : "已发布"}</span>
+        <span>${esc(p.name)}</span></div></div>`).join("");
+    document.querySelectorAll(".item").forEach(el => el.onclick = () => openEditor(posts[+el.dataset.i].path));
+  }catch(e){ handleFatal(e); }
+}
+function handleFatal(e){
+  if(e.status === 401){ localStorage.removeItem(TOKEN_KEY); token = ""; init(); toast(e.message, "err", 8000); return; }
+  $("#app").innerHTML = `<div class="card"><div class="warn" style="font-size:14px">${esc(e.message)}</div>
+    <div class="btnrow"><button class="btn small" id="retry">重试</button></div></div>`;
+  $("#retry").onclick = showList;
+}
+
+/* ---------- 编辑器 ---------- */
+async function openEditor(path){
+  renderTop();
+  const isAbout = path === ABOUT_PATH;
+  if(path){
+    $("#app").innerHTML = `<div class="empty">加载中…</div>`;
+    try{
+      const d = await getFile(path);
+      if(!d || Array.isArray(d)) throw new ApiError(404, explain(404));
+      const doc = parseDoc(b64decode(d.content));
+      if(doc.toml) throw new ApiError(0, "这个文件使用 TOML(+++) 格式的 front matter，本页暂不支持编辑，请直接在 GitHub 上修改。");
+      ed = { path, sha: d.sha, isAbout, isNew: false, doc };
+    }catch(e){
+      if(e.status === 401) return handleFatal(e);
+      $("#app").innerHTML = `<div class="card"><div class="warn" style="font-size:14px">${esc(e.message)}</div></div>`; return;
+    }
+  }else{
+    const dt = defaultDate();
+    ed = { path: null, sha: null, isAbout: false, isNew: true,
+      slug: "post-" + dt.slice(0, 10).replace(/-/g, "") + "-" + dt.slice(11, 16).replace(":", ""),
+      doc: { title: "", date: fromLocalInput(dt), draft: false, tags: [], extra: [], body: "" } };
+  }
+  dirty = false; renderEditor();
+}
+function renderEditor(){
+  const d = ed.doc;
+  $("#subline").textContent = ed.isAbout ? "编辑：关于 (content/about.md)" : (ed.isNew ? "新文章" : "编辑：" + ed.path);
+  $("#app").innerHTML = `<div class="card">
+    <div class="field"><label>标题</label><input type="text" id="f_title" value="${esc(d.title)}" placeholder="文章标题"></div>
+    ${ed.isNew ? `<div class="field"><label>文件名（英文/数字/横线，决定网址）</label>
+      <input type="text" id="f_slug" value="${esc(ed.slug)}" autocapitalize="off" autocomplete="off">
+      <div class="help">将保存为 ${POSTS_DIR}/<span id="slugShow"></span>.md，创建后不能改。</div></div>` : ""}
+    ${ed.isAbout ? "" : `
+    <div class="row2">
+      <div class="field"><label>发布时间（北京时间 +08:00）</label>
+        <input type="datetime-local" step="1" id="f_date" value="${esc(toLocalInput(d.date))}">
+        <div class="warn" id="futureWarn"></div></div>
+      <div class="field"><label>标签（用逗号或空格分隔）</label>
+        <input type="text" id="f_tags" value="${esc(d.tags.join(", "))}" placeholder="例如：折腾, AI, 随笔"></div>
+    </div>
+    <div class="field"><label class="check"><input type="checkbox" id="f_draft" ${d.draft ? "checked" : ""}> 草稿（勾选后网站不显示）</label></div>`}
+    <div class="field"><label>正文（Markdown）</label>
+      <div class="tabs"><span class="tab on" data-m="edit">编辑</span><span class="tab" data-m="both">编辑+预览</span><span class="tab" data-m="prev">仅预览</span></div>
+      <div class="split" id="split">
+        <textarea id="f_body" spellcheck="false">${esc(d.body)}</textarea>
+        <div class="preview hidden" id="prev"></div>
+      </div></div>
+    <div id="serr" class="warn" style="font-size:14px"></div>
+    <div class="btnrow">
+      <button class="btn" id="saveBtn">${ed.isNew ? "发布 / 保存" : "保存"}</button>
+      <button class="btn ghost" id="cancelBtn">返回列表</button>
+      ${ed.isNew || ed.isAbout ? "" : `<button class="btn danger" id="delBtn">删除</button>`}
+      ${ed.isNew ? "" : `<button class="btn ghost" id="reloadBtn">重新载入</button>`}
+    </div></div>`;
+  const mark = () => { dirty = true; futureCheck(); };
+  document.querySelectorAll("#app input, #app textarea").forEach(el => el.addEventListener("input", mark));
+  const sl = $("#f_slug");
+  if(sl){ const upd = () => $("#slugShow").textContent = sl.value.trim(); sl.addEventListener("input", upd); upd(); }
+  const setMode = (m) => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.m === m));
+    $("#f_body").classList.toggle("hidden", m === "prev");
+    $("#prev").classList.toggle("hidden", m === "edit");
+    $("#split").classList.toggle("both", m === "both");
+    if(m !== "edit") $("#prev").innerHTML = md($("#f_body").value) || '<span style="color:var(--muted)">（空）</span>';
+  };
+  document.querySelectorAll(".tab").forEach(t => t.onclick = () => setMode(t.dataset.m));
+  $("#f_body").addEventListener("input", () => { if(!$("#prev").classList.contains("hidden")) $("#prev").innerHTML = md($("#f_body").value); });
+  $("#saveBtn").onclick = save;
+  $("#cancelBtn").onclick = () => guard(showList);
+  if($("#delBtn")) $("#delBtn").onclick = del;
+  if($("#reloadBtn")) $("#reloadBtn").onclick = () => guard(() => openEditor(ed.path));
+  futureCheck();
+}
+function futureCheck(){
+  const f = $("#f_date"), w = $("#futureWarn"); if(!f || !w) return;
+  const t = Date.parse(fromLocalInput(f.value));
+  w.textContent = t > Date.now() ? "⚠ 这个时间在未来，Hugo 构建时会跳过该文章（不显示）。" : "";
+}
+function readForm(){
+  const d = ed.doc;
+  d.title = $("#f_title").value.trim();
+  d.body = $("#f_body").value;
+  if(!ed.isAbout){
+    d.date = fromLocalInput($("#f_date").value || defaultDate());
+    d.draft = $("#f_draft").checked;
+    d.tags = $("#f_tags").value.split(/[,，、;；\s]+/).map(s => s.trim()).filter(Boolean);
+  }
+}
+async function save(){
+  const err = $("#serr"); err.textContent = "";
+  readForm();
+  const d = ed.doc;
+  if(!d.title){ err.textContent = "请填写标题。"; return; }
+  let path = ed.path;
+  if(ed.isNew){
+    const slug = $("#f_slug").value.trim();
+    if(!/^[a-z0-9][a-z0-9-_]*$/i.test(slug)){ err.textContent = "文件名只能用英文字母、数字、横线、下划线，且不能为空。"; return; }
+    path = `${POSTS_DIR}/${slug}.md`;
+  }
+  if(!ed.isAbout && Date.parse(d.date) > Date.now() + 1000 && !confirm("发布时间在未来，网站构建时会跳过这篇文章。仍要保存吗？")) return;
+  const btn = $("#saveBtn"); btn.disabled = true; const label = btn.textContent; btn.textContent = "保存中…";
+  try{
+    if(ed.isNew){
+      const exist = await getFile(path);
+      if(exist) throw new ApiError(422, "已经有同名文件 " + path + "，请换一个文件名。");
+    }
+    const msg = ed.isAbout ? "更新关于页：" + d.title
+      : (ed.isNew ? (d.draft ? "新增草稿：" : "发布文章：") : "更新文章：") + d.title;
+    const r = await putFile(path, buildDoc(d, ed.isAbout), msg, ed.sha);
+    ed.sha = r.content.sha; ed.path = path; ed.isNew = false; dirty = false; listCache = null;
+    $("#subline").textContent = ed.isAbout ? "编辑：关于 (content/about.md)" : "编辑：" + path;
+    toast("✅ 已保存，网站约 1 分钟后更新" + (d.draft && !ed.isAbout ? "（草稿不会显示）" : ""), "ok", 7000);
+    renderEditor();
+  }catch(e){
+    err.textContent = e.message; toast(e.message, "err", 8000);
+    if(e.status === 401){ localStorage.removeItem(TOKEN_KEY); token = ""; dirty = false; init(); }
+  }finally{ const b = $("#saveBtn"); if(b){ b.disabled = false; b.textContent = label; } }
+}
+async function del(){
+  const title = ed.doc.title || ed.path;
+  if(!confirm(`确定删除文章「${title}」吗？\n文件：${ed.path}\n\n删除会提交到仓库（可在 GitHub 历史中找回），网站约 1 分钟后更新。`)) return;
+  const btn = $("#delBtn"); btn.disabled = true;
+  try{
+    await delFile(ed.path, "删除文章：" + title, ed.sha);
+    dirty = false; listCache = null;
+    toast("🗑 已删除，网站约 1 分钟后更新", "ok", 7000);
+    showList();
+  }catch(e){
+    btn.disabled = false; $("#serr").textContent = e.message; toast(e.message, "err", 8000);
+    if(e.status === 401){ localStorage.removeItem(TOKEN_KEY); token = ""; dirty = false; init(); }
+  }
+}
+
+/* ---------- 启动 ---------- */
+function init(){
+  renderTop();
+  if(!token) showLogin(); else showList();
+}
+init();
+</script>
+</body>
+</html>
