@@ -205,10 +205,17 @@ async function pullRemote(){
     remoteSha = d.sha;
     const merged = { books: [] };
     const seen = {};
-    const coverOverrides = {};
+    /* 分卷可补充的字段：只补这些，不碰书的其他内容，避免旧分卷冲掉用户的新编辑 */
+    const PATCH_FIELDS = ["cover", "startedAt", "finishedAt", "status"];
+    const fieldOverrides = {};
     const addBooks = arr => (arr||[]).forEach(b => {
       if(b && b.id && !seen[b.id]){ seen[b.id] = 1; merged.books.push(b); }
-      if(b && b.id && b.cover) coverOverrides[b.id] = b.cover;
+      if(b && b.id){
+        const patch = {};
+        PATCH_FIELDS.forEach(f => { if(b[f] !== undefined && b[f] !== "") patch[f] = b[f]; });
+        if(Object.keys(patch).length)
+          fieldOverrides[b.id] = Object.assign(fieldOverrides[b.id] || {}, patch);
+      }
     });
     const main = JSON.parse(b64decode(d.content));
     if(main && Array.isArray(main.books)) addBooks(main.books);
@@ -222,8 +229,8 @@ async function pullRemote(){
       if(pdata && Array.isArray(pdata.books)) addBooks(pdata.books);
       loadedParts.push({ path: p, sha: pd.sha });
     }
-    /* 分卷只补充 cover 字段，不覆盖书的其他内容，避免旧分卷冲掉用户的新编辑 */
-    merged.books.forEach(b => { if(coverOverrides[b.id]) b.cover = coverOverrides[b.id]; });
+    /* 分卷只补充 patch 字段，不覆盖书的其他内容，避免旧分卷冲掉用户的新编辑 */
+    merged.books.forEach(b => { if(fieldOverrides[b.id]) Object.assign(b, fieldOverrides[b.id]); });
     db = merged;
     localStorage.setItem(KEY, JSON.stringify(db));
     renderStats(); renderAll();
