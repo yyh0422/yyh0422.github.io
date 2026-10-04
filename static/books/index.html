@@ -40,6 +40,14 @@ h1{font-size:22px;margin:0;display:flex;align-items:center;gap:8px;}
 .badge.done{background:#e2ecdf;color:var(--green);}
 .badge.drop{background:#f0ddd8;color:var(--red);}
 .stars{color:#d99a2b;letter-spacing:2px;font-size:14px;}
+.book-head{display:flex;gap:14px;align-items:flex-start;}
+.book-cover{width:64px;height:90px;object-fit:cover;border-radius:8px;flex:none;
+  border:1px solid var(--line);background:#eef0f3;display:block;}
+.book-cover.lg{width:110px;height:156px;}
+.book-cover.ph{display:flex;align-items:center;justify-content:center;text-align:center;
+  font-size:11px;color:var(--muted);padding:6px;line-height:1.5;
+  background:linear-gradient(135deg,#e9edf2,#d5dbe4);}
+.cover-preview{width:88px;height:124px;object-fit:cover;border-radius:8px;border:1px solid var(--line);}
 .excerpt{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:18px 0;}
 .excerpt .quote{font-size:16px;}
 .excerpt .ref{color:var(--muted);font-size:13px;margin-top:6px;}
@@ -133,6 +141,14 @@ function loadCfg(){ try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}
 function saveCfg(){ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* 封面：有 cover 显示图片，加载失败或无封面时显示标题占位图 */
+function coverHTML(b, cls){
+  const c = "book-cover" + (cls ? " " + cls : "");
+  const ph = `<div class="${c} ph"${b.cover?` style="display:none"`:""}><span>${esc((b.title||"").slice(0,14))}</span></div>`;
+  if(!b.cover) return ph;
+  return `<img class="${c}" src="${esc(b.cover)}" alt="封面" loading="lazy" ` +
+    `onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">${ph}`;
+}
 const STATUS = { reading:"在读", done:"已读完", dropped:"弃读" };
 
 /* ---------- 云端同步 (GitHub 私有仓库) ---------- */
@@ -189,8 +205,10 @@ async function pullRemote(){
     remoteSha = d.sha;
     const merged = { books: [] };
     const seen = {};
+    const coverOverrides = {};
     const addBooks = arr => (arr||[]).forEach(b => {
       if(b && b.id && !seen[b.id]){ seen[b.id] = 1; merged.books.push(b); }
+      if(b && b.id && b.cover) coverOverrides[b.id] = b.cover;
     });
     const main = JSON.parse(b64decode(d.content));
     if(main && Array.isArray(main.books)) addBooks(main.books);
@@ -204,6 +222,8 @@ async function pullRemote(){
       if(pdata && Array.isArray(pdata.books)) addBooks(pdata.books);
       loadedParts.push({ path: p, sha: pd.sha });
     }
+    /* 分卷只补充 cover 字段，不覆盖书的其他内容，避免旧分卷冲掉用户的新编辑 */
+    merged.books.forEach(b => { if(coverOverrides[b.id]) b.cover = coverOverrides[b.id]; });
     db = merged;
     localStorage.setItem(KEY, JSON.stringify(db));
     renderStats(); renderAll();
@@ -342,14 +362,19 @@ function renderShelf(){
   } else {
     html += books.map(b => `
     <div class="card book-card" data-id="${b.id}">
-      <p class="book-title">${esc(b.title)}</p>
-      <div class="book-meta">
-        ${b.author?`<span>${esc(b.author)}</span>`:""}
-        <span class="badge ${b.status==="done"?"done":b.status==="dropped"?"drop":""}">${STATUS[b.status]||"在读"}</span>
-        ${b.rating?`<span class="stars">${stars(b.rating)}</span>`:""}
-        <span>${(b.excerpts||[]).length} 条摘抄</span>
+      <div class="book-head">
+        ${coverHTML(b)}
+        <div style="flex:1;min-width:0">
+          <p class="book-title">${esc(b.title)}</p>
+          <div class="book-meta">
+            ${b.author?`<span>${esc(b.author)}</span>`:""}
+            <span class="badge ${b.status==="done"?"done":b.status==="dropped"?"drop":""}">${STATUS[b.status]||"在读"}</span>
+            ${b.rating?`<span class="stars">${stars(b.rating)}</span>`:""}
+            <span>${(b.excerpts||[]).length} 条摘抄</span>
+          </div>
+          ${(b.tags&&b.tags.length)?`<div class="booktags">${b.tags.map(t=>`<span class="t">${esc(t)}</span>`).join("")}</div>`:""}
+        </div>
       </div>
-      ${(b.tags&&b.tags.length)?`<div class="booktags">${b.tags.map(t=>`<span class="t">${esc(t)}</span>`).join("")}</div>`:""}
     </div>`).join("");
   }
   v.innerHTML = html;
@@ -407,15 +432,20 @@ function renderBook(){
   v.innerHTML = `
     <button class="backbtn" id="backBtn">‹ 返回书架</button>
     <div class="card">
-      <p class="book-title">${esc(b.title)}</p>
-      <div class="book-meta">
-        ${b.author?`<span>作者：${esc(b.author)}</span>`:""}
-        <span class="badge ${b.status==="done"?"done":b.status==="dropped"?"drop":""}">${STATUS[b.status]||"在读"}</span>
-        ${b.rating?`<span class="stars">${stars(b.rating)}</span>`:""}
+      <div class="book-head">
+        ${coverHTML(b, "lg")}
+        <div style="flex:1;min-width:0">
+          <p class="book-title">${esc(b.title)}</p>
+          <div class="book-meta">
+            ${b.author?`<span>作者：${esc(b.author)}</span>`:""}
+            <span class="badge ${b.status==="done"?"done":b.status==="dropped"?"drop":""}">${STATUS[b.status]||"在读"}</span>
+            ${b.rating?`<span class="stars">${stars(b.rating)}</span>`:""}
+          </div>
+          ${(b.startedAt||b.finishedAt)?`<div class="book-meta" style="margin-top:6px">
+            ${b.startedAt?`<span>开始：${esc(b.startedAt)}</span>`:""}
+            ${b.finishedAt?`<span>读完：${esc(b.finishedAt)}</span>`:""}</div>`:""}
+        </div>
       </div>
-      ${(b.startedAt||b.finishedAt)?`<div class="book-meta" style="margin-top:6px">
-        ${b.startedAt?`<span>开始：${esc(b.startedAt)}</span>`:""}
-        ${b.finishedAt?`<span>读完：${esc(b.finishedAt)}</span>`:""}</div>`:""}
       <div class="btnrow">
         <button class="btn small ghost" id="addExcerptBtn">＋ 加摘抄</button>
         <button class="btn small ghost" id="editBookBtn">编辑图书</button>
@@ -475,6 +505,10 @@ function bookForm(b){
     <h2>${isNew?"添加图书":"编辑图书"}</h2>
     <div class="field"><label>书名 *</label><input id="f_title" value="${esc(b.title||"")}"></div>
     <div class="field"><label>作者</label><input id="f_author" value="${esc(b.author||"")}"></div>
+    <div class="field"><label>封面图片链接</label>
+      <input id="f_cover" value="${esc(b.cover||"")}" placeholder="https://…" autocomplete="off">
+      <div id="coverPrev" style="margin-top:8px"></div>
+      <div class="help">粘贴图片链接即可；留空则显示标题占位图。</div></div>
     <div class="field"><label>状态</label><select id="f_status">
       ${Object.keys(STATUS).map(k=>`<option value="${k}" ${b.status===k?"selected":""}>${STATUS[k]}</option>`).join("")}
     </select></div>
@@ -495,12 +529,24 @@ function bookForm(b){
       sp.classList.toggle("on", +sp.dataset.s <= +s));
   });
   document.getElementById("mCancel").onclick = closeModal;
+  const prevCover = () => {
+    const u = document.getElementById("f_cover").value.trim();
+    const box = document.getElementById("coverPrev");
+    if(!u){ box.innerHTML = ""; return; }
+    box.innerHTML = `<img class="cover-preview" src="${esc(u)}">`;
+    box.querySelector("img").onerror = function(){
+      box.innerHTML = `<div style="font-size:12px;color:var(--red)">图片加载失败，请检查链接</div>`;
+    };
+  };
+  document.getElementById("f_cover").addEventListener("input", prevCover);
+  prevCover();
   document.getElementById("mSave").onclick = () => {
     const title = document.getElementById("f_title").value.trim();
     if(!title){ alert("请填写书名"); return; }
     const data = {
       title,
       author: document.getElementById("f_author").value.trim(),
+      cover: document.getElementById("f_cover").value.trim(),
       status: document.getElementById("f_status").value,
       rating: +document.getElementById("f_rating").value,
       startedAt: document.getElementById("f_started").value,
