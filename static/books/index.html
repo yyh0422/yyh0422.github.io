@@ -157,8 +157,8 @@ function setSyncStatus(s, msg){
 function b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
 function b64decode(b64){ return decodeURIComponent(escape(atob(String(b64).replace(/\s/g,"")))); }
 
-async function ghApi(method, body){
-  const url = `https://api.github.com/repos/${ghOwner()}/${cfg.repo}/contents/${ghPath()}`;
+async function ghApiFor(path, method, body){
+  const url = `https://api.github.com/repos/${ghOwner()}/${cfg.repo}/contents/${path}`;
   const r = await fetch(url, {
     method: method || "GET",
     headers: { "Authorization": "Bearer " + cfg.token, "Accept": "application/vnd.github+json" },
@@ -168,20 +168,46 @@ async function ghApi(method, body){
   if(!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
 }
+function ghApi(method, body){ return ghApiFor(ghPath(), method, body); }
+
+/* 分卷存储：主卷 bookshelf.json + 附加卷 bookshelf_p2.json…，按 id 去重合并。
+   任一分卷拉取失败即视为未完整加载（fullLoadOk=false），pushNow 会拒绝推送，
+   避免半份数据覆盖云端。 */
+let fullLoadOk = false;
+let loadedParts = [];
+function partPath(i){
+  const base = ghPath().replace(/\.json$/i, "");
+  return base + "_p" + i + ".json";
+}
 async function pullRemote(){
-  if(!ghConfigured()){ setSyncStatus("off"); return false; }
+  if(!ghConfigured()){ setSyncStatus("off"); fullLoadOk = false; return false; }
   setSyncStatus("syncing");
+  fullLoadOk = false; loadedParts = [];
   try{
     const d = await ghApi("GET");
-    if(d.notFound){ remoteSha = null; setSyncStatus("ok","云端暂无数据"); return true; }
+    if(d.notFound){ remoteSha = null; setSyncStatus("ok","云端暂无数据"); fullLoadOk = true; return true; }
     remoteSha = d.sha;
-    const data = JSON.parse(b64decode(d.content));
-    if(data && Array.isArray(data.books)){
-      db = data;
-      localStorage.setItem(KEY, JSON.stringify(db));
-      renderStats(); renderAll();
+    const merged = { books: [] };
+    const seen = {};
+    const addBooks = arr => (arr||[]).forEach(b => {
+      if(b && b.id && !seen[b.id]){ seen[b.id] = 1; merged.books.push(b); }
+    });
+    const main = JSON.parse(b64decode(d.content));
+    if(main && Array.isArray(main.books)) addBooks(main.books);
+    for(let i=2; i<=9; i++){
+      const p = partPath(i);
+      let pd;
+      try{ pd = await ghApiFor(p, "GET"); }
+      catch(e){ setSyncStatus("error","分卷拉取失败，已阻止推送"); return false; }
+      if(pd.notFound) break;
+      const pdata = JSON.parse(b64decode(pd.content));
+      if(pdata && Array.isArray(pdata.books)) addBooks(pdata.books);
+      loadedParts.push({ path: p, sha: pd.sha });
     }
-    setSyncStatus("ok"); return true;
+    db = merged;
+    localStorage.setItem(KEY, JSON.stringify(db));
+    renderStats(); renderAll();
+    setSyncStatus("ok"); fullLoadOk = true; return true;
   }catch(e){ setSyncStatus("error"); return false; }
 }
 let pushTimer = null;
@@ -192,6 +218,7 @@ function schedulePush(){
 }
 async function pushNow(){
   if(!ghConfigured() || syncState === "syncing") return;
+  if(!fullLoadOk) return; /* 未完整加载分卷时禁止推送，防止半份数据覆盖云端 */
   setSyncStatus("syncing");
   const tryPut = async () => {
     try{ const d = await ghApi("GET"); remoteSha = d.notFound ? null : d.sha; }catch(e){}
@@ -202,6 +229,11 @@ async function pushNow(){
     if(remoteSha) body.sha = remoteSha;
     const r = await ghApi("PUT", body);
     if(r.content && r.content.sha) remoteSha = r.content.sha;
+    /* 已合并进主卷的分卷文件清掉（失败也无妨，下次拉取按 id 去重依然正确） */
+    for(const lp of loadedParts){
+      try{ await ghApiFor(lp.path, "DELETE", { message: "分卷已合并入主文件", sha: lp.sha }); }catch(e){}
+    }
+    loadedParts = [];
   };
   try { await tryPut(); setSyncStatus("ok"); }
   catch(e){
