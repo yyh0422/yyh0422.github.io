@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>家庭信息屏</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg:#0e1116; --card:#171c24; --line:#262d3a; --txt:#e8eaf0; --dim:#9aa3b2;
+    --accent:#f0b429; --teal:#4fd1c5; --red:#ff6b6b;
+  }
+  html,body { height:100%; }
+  body {
+    background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    padding:20px; -webkit-tap-highlight-color:transparent;
+  }
+  .wrap { max-width:1180px; margin:0 auto; }
+  /* 时钟 */
+  .clock-card {
+    background:linear-gradient(135deg,#1a2030,#141a26);
+    border:1px solid var(--line); border-radius:20px;
+    padding:28px 32px; margin-bottom:18px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  }
+  #time { font-size:clamp(56px,9vw,96px); font-weight:700; letter-spacing:2px; font-variant-numeric:tabular-nums; line-height:1; }
+  #time small { font-size:.42em; color:var(--dim); font-weight:400; margin-left:10px; letter-spacing:0; }
+  #dateLine { margin-top:10px; font-size:clamp(16px,2.4vw,22px); color:var(--dim); }
+  #dateLine .lunar { color:var(--accent); }
+  .icon-btn {
+    background:#202634; color:var(--txt); border:1px solid var(--line);
+    border-radius:12px; padding:10px 16px; font-size:15px; cursor:pointer;
+  }
+  .icon-btn:active { transform:scale(.96); }
+  /* 卡片网格 */
+  .grid { display:grid; grid-template-columns:1.15fr 1fr 1fr; gap:18px; }
+  @media (max-width:900px){ .grid{ grid-template-columns:1fr; } }
+  .card {
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:20px; min-height:340px; display:flex; flex-direction:column;
+  }
+  .card h2 { font-size:18px; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .card-head h2 { margin-bottom:0; }
+  .nav-btns { display:flex; align-items:center; gap:6px; }
+  .nav-btns button {
+    background:#202634; color:var(--txt); border:1px solid var(--line);
+    border-radius:8px; min-width:32px; height:30px; font-size:15px; cursor:pointer; padding:0 8px;
+  }
+  #monthLabel { font-size:15px; color:var(--txt); min-width:92px; text-align:center; }
+  /* 月历 */
+  .weekdays,.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; }
+  .weekdays { color:var(--dim); font-size:13px; margin-bottom:6px; }
+  .cal-grid button {
+    background:none; border:none; color:var(--txt); font-size:15px;
+    aspect-ratio:1; border-radius:50%; cursor:pointer; position:relative;
+    font-family:inherit;
+  }
+  .cal-grid button:active { background:#202634; }
+  .cal-grid button.other { color:#4a5262; }
+  .cal-grid button.today { background:var(--accent); color:#141414; font-weight:700; }
+  .cal-grid button.selected:not(.today) { box-shadow:inset 0 0 0 2px var(--accent); }
+  .cal-grid button .dot {
+    position:absolute; bottom:4px; left:50%; transform:translateX(-50%);
+    width:5px; height:5px; border-radius:50%; background:var(--teal);
+  }
+  .cal-grid button.today .dot { background:#141414; }
+  #dayEvents { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; flex:1; }
+  #dayEventsTitle { font-size:14px; color:var(--dim); margin-bottom:8px; }
+  /* 列表 */
+  .list { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  .item {
+    background:#1f2530; border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; display:flex; align-items:center; gap:10px; font-size:15px;
+  }
+  .item .grow { flex:1; overflow:hidden; text-overflow:ellipsis; }
+  .item .meta { font-size:12px; color:var(--dim); white-space:nowrap; }
+  .item.done .grow { text-decoration:line-through; color:var(--dim); }
+  .del { background:none; border:none; color:#5a6376; font-size:16px; cursor:pointer; padding:2px 6px; }
+  .del:active { color:var(--red); }
+  .check {
+    width:22px; height:22px; border-radius:50%; border:2px solid #3a4356;
+    background:none; cursor:pointer; flex-shrink:0; font-size:13px; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .check.on { background:var(--teal); border-color:var(--teal); }
+  .empty { color:#4a5262; font-size:14px; text-align:center; padding:24px 0; }
+  .add-row { display:flex; gap:8px; }
+  .add-row input {
+    flex:1; background:#10141b; border:1px solid var(--line); border-radius:10px;
+    color:var(--txt); padding:10px 12px; font-size:15px; font-family:inherit; min-width:0;
+    color-scheme:dark;
+  }
+  .add-row input[type=date]{ flex:0 1 150px; }
+  .add-row button {
+    background:var(--accent); border:none; border-radius:10px; padding:0 18px;
+    font-size:15px; font-weight:600; color:#141414; cursor:pointer; font-family:inherit;
+    white-space:nowrap;
+  }
+  .add-row button:active { transform:scale(.96); }
+  .foot { text-align:center; color:#3d4454; font-size:12px; margin-top:18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="clock-card">
+    <div>
+      <div id="time">--:--<small></small></div>
+      <div id="dateLine"></div>
+    </div>
+    <button class="icon-btn" id="fsBtn">⛶ 全屏</button>
+  </div>
+  <div class="grid">
+    <section class="card">
+      <div class="card-head">
+        <h2>📅 日历</h2>
+        <div class="nav-btns">
+          <button id="prevM">‹</button><span id="monthLabel"></span><button id="nextM">›</button>
+          <button id="todayBtn">今天</button>
+        </div>
+      </div>
+      <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div id="dayEvents"><div id="dayEventsTitle"></div><div id="dayEventsList" class="list"></div></div>
+    </section>
+    <section class="card">
+      <h2>🗓 近期日程</h2>
+      <div class="list" id="upcoming"></div>
+      <div class="add-row">
+        <input id="evTitle" placeholder="添加日程…" maxlength="60">
+        <input id="evDate" type="date">
+        <button id="evAdd">添加</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>✅ 待办事项</h2>
+      <div class="list" id="todoList"></div>
+      <div class="add-row">
+        <input id="todoInput" placeholder="添加待办…" maxlength="80">
+        <button id="todoAdd">添加</button>
+      </div>
+    </section>
+  </div>
+  <div class="foot">数据保存在本机浏览器 · 打开页面自动显示</div>
+</div>
+<script>
+/* ============ 农历换算(1900-01-31起,已逐项校验) ============ */
+var lunarInfo=[0x4bd8,0x4ae0,0xa570,0x54d5,0xd260,0xd950,0x16554,0x56a0,0x9ad0,0x55d2,
+0x4ae0,0xa5b6,0xa4d0,0xd250,0x1d255,0xb540,0xd6a0,0xada2,0x95b0,0x14977,
+0x4970,0xa4b0,0xb4b5,0x6a50,0x6d40,0x1ab54,0x2b60,0x9570,0x52f2,0x4970,
+0x6566,0xd4a0,0xea50,0x16a95,0x5ad0,0x2b60,0x186e3,0x92e0,0x1c8d7,0xc950,
+0xd4a0,0x1d8a6,0xb550,0x56a0,0x1a5b4,0x25d0,0x92d0,0xd2b2,0xa950,0xb557,
+0x6ca0,0xb550,0x15355,0x4da0,0xa5b0,0x14573,0x52b0,0xa9a8,0xe950,0x6aa0,
+0xaea6,0xab50,0x4b60,0xaae4,0xa570,0x5260,0xf263,0xd950,0x5b57,0x56a0,
+0x96d0,0x4dd5,0x4ad0,0xa4d0,0xd4d4,0xd250,0xd558,0xb540,0xb6a0,0x195a6,
+0x95b0,0x49b0,0xa974,0xa4b0,0xb27a,0x6a50,0x6d40,0xaf46,0xab60,0x9570,
+0x4af5,0x4970,0x64b0,0x74a3,0xea50,0x6b58,0x5ac0,0xab60,0x96d5,0x92e0,
+0xc960,0xd954,0xd4a0,0xda50,0x7552,0x56a0,0xabb7,0x25d0,0x92d0,0xcab5,
+0xa950,0xb4a0,0xbaa4,0xad50,0x55d9,0x4ba0,0xa5b0,0x15176,0x52b0,0xa930,
+0x7954,0x6aa0,0xad50,0x5b52,0x4b60,0xa6e6,0xa4e0,0xd260,0xea65,0xd530,
+0x5aa0,0x76a3,0x96d0,0x4afb,0x4ad0,0xa4d0,0x1d0b6,0xd250,0xd520,0xdd45,
+0xb5a0,0x56d0,0x55b2,0x49b0,0xa577,0xa4b0,0xaa50,0x1b255,0x6d20,0xada0,
+0x14b63,0x9370,0x49f8,0x4970,0x64b0,0x168a6,0xea50,0x6b20,0x1a6c4,0xaae0,
+0x92e0,0xd2e3,0xc960,0xd557,0xd4a0,0xda50,0x5d55,0x56a0,0xa6d0,0x55d4,
+0x52d0,0xa9b8,0xa950,0xb4a0,0xb6a6,0xad50,0x55a0,0xaba4,0xa5b0,0x52b0,
+0xb273,0x6930,0x7337,0x6aa0,0xad50,0x14b55,0x4b60,0xa570,0x54e4,0xd160,
+0xe968,0xd520,0xdaa0,0x16aa6,0x56d0,0x4ae0,0xa9d4,0xa2d0,0xd150,0xf252,
+0xd520,];
+function lYearDays(y){var i,s=348;for(i=0x8000;i>0x8;i>>=1)s+=(lunarInfo[y-1900]&i)?1:0;return s+leapDays(y);}
+function leapMonth(y){return lunarInfo[y-1900]&0xf;}
+function leapDays(y){if(leapMonth(y))return(lunarInfo[y-1900]&0x10000)?30:29;return 0;}
+function monthDays(y,m){return(lunarInfo[y-1900]&(0x10000>>m))?30:29;}
+function solar2lunar(y,m,d){
+  var off=(Date.UTC(y,m-1,d)-Date.UTC(1900,0,31))/86400000,i,t=0,lm;
+  for(i=1900;i<2101&&off>0;i++){t=lYearDays(i);off-=t;}
+  if(off<0){off+=t;i--;}
+  var Y=i;lm=leapMonth(i);var isL=false;
+  for(i=1;i<13&&off>0;i++){
+    if(lm>0&&i==lm+1&&!isL){--i;isL=true;t=leapDays(Y);}else t=monthDays(Y,i);
+    if(isL&&i==lm+1)isL=false;
+    off-=t;
+  }
+  if(off==0&&lm>0&&i==lm+1){if(isL)isL=false;else{isL=true;--i;}}
+  if(off<0){off+=t;--i;}
+  return{y:Y,m:i,d:off+1,leap:isL};
+}
+var lunarMonths=['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','冬月','腊月'];
+var lunarDays=['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+function lunarStr(y,m,d){
+  var l=solar2lunar(y,m,d);
+  return '农历'+(l.leap?'闰':'')+lunarMonths[l.m-1]+lunarDays[l.d-1];
+}
+
+/* ============ 工具 ============ */
+function $(id){return document.getElementById(id);}
+function pad(n){return(n<10?'0':'')+n;}
+function dstr(y,m,d){return y+'-'+pad(m)+'-'+pad(d);}
+function todayStr(){var n=new Date();return dstr(n.getFullYear(),n.getMonth()+1,n.getDate());}
+function parseD(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function load(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v||d;}catch(e){return d;}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+var uid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);};
+var weeks=['日','一','二','三','四','五','六'];
+
+/* ============ 时钟 ============ */
+function tick(){
+  var n=new Date();
+  $('time').innerHTML=pad(n.getHours())+':'+pad(n.getMinutes())+'<small>'+pad(n.getSeconds())+'</small>';
+  $('dateLine').innerHTML=n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日 星期'+weeks[n.getDay()]
+    +' &nbsp;<span class="lunar">'+lunarStr(n.getFullYear(),n.getMonth()+1,n.getDate())+'</span>';
+}
+setInterval(tick,1000);tick();
+// 跨天自动刷新日历
+var lastDay=todayStr();
+setInterval(function(){if(todayStr()!==lastDay){lastDay=todayStr();renderAll();}},30000);
+
+/* ============ 日历 ============ */
+var viewY,viewM,selDate;
+function initCal(){var n=new Date();viewY=n.getFullYear();viewM=n.getMonth()+1;selDate=todayStr();}
+function renderCal(){
+  $('monthLabel').textContent=viewY+'年'+viewM+'月';
+  var evs=load('dash_events',[]);
+  var evSet={};evs.forEach(function(e){evSet[e.date]=1;});
+  var first=new Date(viewY,viewM-1,1).getDay();
+  var dim=new Date(viewY,viewM,0).getDate();
+  var prevDim=new Date(viewY,viewM-1,0).getDate();
+  var html='',i,day,ds;
+  for(i=0;i<first;i++){day=prevDim-first+1+i;ds=dstr(viewM===1?viewY-1:viewY,viewM===1?12:viewM-1,day);
+    html+='<button class="other" data-d="'+ds+'">'+day+'</button>';}
+  for(day=1;day<=dim;day++){ds=dstr(viewY,viewM,day);
+    var cls='';if(ds===todayStr())cls+=' today';if(ds===selDate)cls+=' selected';
+    html+='<button class="'+cls+'" data-d="'+ds+'">'+day+(evSet[ds]?'<span class="dot"></span>':'')+'</button>';}
+  var tail=(7-(first+dim)%7)%7;
+  for(i=1;i<=tail;i++){ds=dstr(viewM===12?viewY+1:viewY,viewM===12?1:viewM+1,i);
+    html+='<button class="other" data-d="'+ds+'">'+i+'</button>';}
+  $('calGrid').innerHTML=html;
+  var btns=$('calGrid').querySelectorAll('button');
+  for(i=0;i<btns.length;i++){btns[i].onclick=function(){selDate=this.getAttribute('data-d');renderCal();renderDayEvents();};}
+  renderDayEvents();
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function renderDayEvents(){
+  var p=parseD(selDate);
+  $('dayEventsTitle').textContent=(p.getMonth()+1)+'月'+p.getDate()+'日 星期'+weeks[p.getDay()]+' 的日程';
+  var evs=load('dash_events',[]).filter(function(e){return e.date===selDate;});
+  var html=evs.length?'':'<div class="empty">这一天没有安排</div>';
+  evs.forEach(function(e){
+    html+='<div class="item"><span class="grow">'+esc(e.title)+'</span><button class="del" data-id="'+e.id+'" data-k="ev">✕</button></div>';
+  });
+  $('dayEventsList').innerHTML=html;
+  bindDel($('dayEventsList'));
+}
+$('prevM').onclick=function(){viewM--;if(viewM<1){viewM=12;viewY--;}renderCal();};
+$('nextM').onclick=function(){viewM++;if(viewM>12){viewM=1;viewY++;}renderCal();};
+$('todayBtn').onclick=function(){initCal();renderCal();};
+
+/* ============ 近期日程 ============ */
+function labelFor(ds){
+  if(ds===todayStr())return '今天';
+  var t=parseD(todayStr()),d=parseD(ds);
+  var diff=Math.round((d-t)/86400000);
+  if(diff===1)return '明天';if(diff===2)return '后天';
+  return (d.getMonth()+1)+'月'+d.getDate()+'日';
+}
+function renderUpcoming(){
+  var evs=load('dash_events',[]).filter(function(e){return e.date>=todayStr();})
+    .sort(function(a,b){return a.date<b.date?-1:1;}).slice(0,14);
+  var html=evs.length?'':'<div class="empty">未来两周没有日程</div>';
+  evs.forEach(function(e){
+    html+='<div class="item"><span class="meta">'+labelFor(e.date)+'</span><span class="grow">'+esc(e.title)+'</span><button class="del" data-id="'+e.id+'" data-k="ev">✕</button></div>';
+  });
+  $('upcoming').innerHTML=html;
+  bindDel($('upcoming'));
+}
+function addEvent(){
+  var t=$('evTitle').value.trim();if(!t)return;
+  var d=$('evDate').value||selDate||todayStr();
+  var evs=load('dash_events',[]);evs.push({id:uid(),title:t,date:d});save('dash_events',evs);
+  $('evTitle').value='';renderCal();renderUpcoming();
+}
+$('evAdd').onclick=addEvent;
+$('evTitle').addEventListener('keydown',function(e){if(e.key==='Enter')addEvent();});
+
+/* ============ 待办 ============ */
+function renderTodos(){
+  var ts=load('dash_todos',[]);
+  var html=ts.length?'':'<div class="empty">没有待办，享受生活吧</div>';
+  ts.forEach(function(t){
+    html+='<div class="item'+(t.done?' done':'')+'"><button class="check'+(t.done?' on':'')+'" data-id="'+t.id+'">'+(t.done?'✓':'')+'</button><span class="grow">'+esc(t.text)+'</span><button class="del" data-id="'+t.id+'" data-k="todo">✕</button></div>';
+  });
+  $('todoList').innerHTML=html;
+  bindDel($('todoList'));
+  var cks=$('todoList').querySelectorAll('.check');
+  for(var i=0;i<cks.length;i++){cks[i].onclick=function(){
+    var ts=load('dash_todos',[]),id=this.getAttribute('data-id');
+    ts.forEach(function(t){if(t.id===id)t.done=!t.done;});
+    save('dash_todos',ts);renderTodos();
+  };}
+}
+function addTodo(){
+  var t=$('todoInput').value.trim();if(!t)return;
+  var ts=load('dash_todos',[]);ts.push({id:uid(),text:t,done:false});save('dash_todos',ts);
+  $('todoInput').value='';renderTodos();
+}
+$('todoAdd').onclick=addTodo;
+$('todoInput').addEventListener('keydown',function(e){if(e.key==='Enter')addTodo();});
+
+function bindDel(root){
+  var ds=root.querySelectorAll('.del');
+  for(var i=0;i<ds.length;i++){ds[i].onclick=function(){
+    var id=this.getAttribute('data-id'),k=this.getAttribute('data-k');
+    if(k==='ev'){var evs=load('dash_events',[]).filter(function(e){return e.id!==id;});save('dash_events',evs);renderCal();renderUpcoming();}
+    else{var ts=load('dash_todos',[]).filter(function(t){return t.id!==id;});save('dash_todos',ts);renderTodos();}
+  };}
+}
+
+/* ============ 全屏 ============ */
+$('fsBtn').onclick=function(){
+  if(document.fullscreenElement)document.exitFullscreen();
+  else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();
+};
+
+/* ============ 启动 ============ */
+function renderAll(){tick();renderCal();renderUpcoming();renderTodos();}
+initCal();
+// 日程日期默认填选中日
+$('evDate').value=selDate;
+setInterval(function(){var v=$('evDate');if(!v.value)v.value=selDate;},1000);
+renderAll();
+</script>
+</body>
+</html>
