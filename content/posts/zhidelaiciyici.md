@@ -1,7 +1,7 @@
 ---
 title: "此生值得来此一次"
 date: 2026-10-14T08:35:00+08:00
-draft: true
+draft: false
 tags: ["对谈"]
 ---
 
